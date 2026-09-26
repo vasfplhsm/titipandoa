@@ -175,12 +175,46 @@ const INITIAL_ITINERARY = [
   }
 ];
 
-const PRESET_INSPIRATIONS = [
-  "Dikurniakan kesihatan yang sihat walafiat sepanjang berada di Tanah Suci Makkah dan Madinah.",
-  "Dipermudahkan urusan ibadah, tawaf, sa'i dan diberikan keampunan atas segala dosa lalu.",
-  "Mohon titipkan doa agar keluargaku sentiasa berada di dalam rahmat & perlindungan Allah.",
-  "Dikurniakan rezeki yang melimpah ruah dan kebahagiaan rumah tangga hingga ke jannah."
-];
+const DOA_CATEGORIES = ['Kesihatan', 'Rezeki', 'Ampunan', 'Zuriat', 'Jodoh', 'Keluarga', 'Umum'];
+
+const CONTOH_DOA_BY_CATEGORY = {
+  Kesihatan: [
+    "Semoga diberikan kesihatan yang berpanjangan, tubuh badan yang cergas dan afiah, serta kekuatan fizikal untuk beribadah dengan sempurna di Tanah Suci.",
+    "Ya Allah, sembuhkanlah segala penyakit fizikal dan rohani kami, angkatlah segala kesakitan dan kurniakanlah kesembuhan yang sempurna tanpa meninggalkan kesan.",
+    "Mohon doakan agar ibu bapa dan keluarga sentiasa dikurniakan umur yang berkah, stamina yang kuat serta terhindar daripada sebarang wabak dan kemudaratan."
+  ],
+  Rezeki: [
+    "Ya Allah, bukakanlah pintu-pintu rezeki yang seluas-luasnya, halal lagi berkat dari sumber yang tidak disangka-sangka untuk melunaskan segala hutang.",
+    "Semoga dimurahkan rezeki, dilapangkan segala urusan perniagaan dan pekerjaan, serta dikurniakan keberkatan dalam setiap sen pendapatan.",
+    "Moga dikurniakan kelapangan harta untuk berterusan bersedekah, membantu ummah dan kembali lagi menjadi tetamu-Mu di Baitullah."
+  ],
+  Ampunan: [
+    "Ya Allah, ampunkanlah segala dosa-dosa kami yang lalu dan akan datang, dosa kecil mahupun besar, dan kurniakanlah kami taubat nasuha yang hakiki.",
+    "Mohon titipkan doa di Multazam agar diampunkan dosa kedua ibu bapa kami, dikasihi mereka sebagaimana mereka mendidik kami sejak kecil.",
+    "Semoga Allah menyucikan jiwa kita dari sifat mazmumah, menerima segala amalan kebajikan dan menyelamatkan kita daripada seksa api neraka."
+  ],
+  Zuriat: [
+    "Ya Allah, kurniakanlah kami zuriat yang soleh dan solehah, penyejuk mata (Qurrata A'yun) yang taat kepada perintah-Mu dan berbakti kepada keluarga.",
+    "Mohon doakan dari hadapan Kaabah agar kami dikurniakan keturunan yang sihat, beriman, sempurna akal fikiran dan menjadi pejuang agama Islam.",
+    "Semoga Allah mempermudahkan rezeki zuriat buat kami sekeluarga, mempercepatkan kehamilan yang selamat dan mengurniakan cahaya mata yang soleh."
+  ],
+  Jodoh: [
+    "Ya Allah, kurniakanlah jodoh yang terbaik, beriman, berakhlak mulia, penyayang dan dapat membimbing bersama ke jalan keredhaan-Mu hingga ke syurga.",
+    "Mohon doa agar dipermudahkan urusan pertemuan jodoh pada waktu yang paling tepat dan indah menurut perancangan Allah SWT.",
+    "Semoga ikatan jodoh dan perkahwinan yang dibina sentiasa dipenuhi mawaddah, sakinah dan rahmah serta berkekalan hingga ke jannah."
+  ],
+  Keluarga: [
+    "Ya Allah, peliharalah kerukunan dan kebahagiaan rumah tangga kami, satukanlah hati-hati kami dalam kasih sayang yang berkekalan.",
+    "Mohon doakan agar anak-anak kami menjadi insan yang cemerlang dunia dan akhirat, sentiasa mendirikan solat dan dijauhi fitnah akhir zaman.",
+    "Semoga seluruh ahli keluarga kami sentiasa dalam lindungan taufik dan hidayah Allah serta dihimpunkan bersama di syurga Firdaus kelak."
+  ],
+  Umum: [
+    "Semoga dikurniakan ketenangan jiwa, dipermudahkan segala urusan dunia dan akhirat, serta dimakbulkan setiap hajat baik yang terpendam.",
+    "Selamat bermusafir ke Tanah Suci, semoga beroleh Umrah yang mabrurah, ibadah yang diterima dan selamat pulang ke tanah air.",
+    "Ya Allah, jadikanlah kehidupan kami sentiasa dalam reda-Mu, matikanlah kami dalam husnul khatimah dan kurniakan kami syurga tanpa hisab."
+  ]
+};
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'tech_guide'
@@ -420,40 +454,44 @@ export default function App() {
       )}
 
       {/* Header Bar */}
-      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-pink-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('submission')}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-200">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2.5 flex items-center justify-between gap-3 lg:gap-4">
+          {/* Brand Logo & Pilgrim Name */}
+          <div 
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer shrink-0" 
+            onClick={() => setActiveTab('submission')}
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-200 shrink-0">
               <Flower2 className="w-5 h-5 fill-white/20" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent whitespace-nowrap">
                   Titipan Doa
                 </span>
-                <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-semibold hidden sm:inline">
-                  Syahidah Zulkafli
+                <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap hidden sm:inline">
+                  {pilgrimName}
                 </span>
               </div>
-              <p className="text-[10px] text-pink-500 font-medium hidden md:block">
+              <p className="text-[10px] text-pink-500 font-medium hidden 2xl:block whitespace-nowrap leading-none mt-0.5">
                 Titipkan doa, iringi perjalanan ke Tanah Suci.
               </p>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="hidden lg:flex items-center gap-1 bg-pink-50/60 p-1.5 rounded-2xl border border-pink-100 text-xs font-semibold">
+          {/* Navigation Tabs (Desktop) */}
+          <nav className="hidden lg:flex items-center gap-1 bg-pink-50/60 p-1.5 rounded-2xl border border-pink-100 text-xs font-semibold shrink-0">
             <button
               onClick={() => setActiveTab('submission')}
-              className={`px-3.5 py-2 rounded-xl transition-all ${
+              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
                 activeTab === 'submission' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Borang Titipan (/p/{pilgrimSlug})
+              Borang Titipan
             </button>
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-3.5 py-2 rounded-xl transition-all ${
+              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
                 activeTab === 'dashboard' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -461,31 +499,31 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('checklist')}
-              className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'checklist' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <ListTodo className="w-3.5 h-3.5" /> Checklist
+              <ListTodo className="w-3.5 h-3.5 shrink-0" /> Checklist
             </button>
             <button
               onClick={() => setActiveTab('itinerary')}
-              className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'itinerary' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" /> Penerbangan & Itinerary
+              <Calendar className="w-3.5 h-3.5 shrink-0" /> Itinerary
             </button>
             <button
               onClick={() => setActiveTab('timeline')}
-              className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'timeline' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Compass className="w-3.5 h-3.5" /> Timeline View
+              <Compass className="w-3.5 h-3.5 shrink-0" /> Timeline
             </button>
             <button
               onClick={() => setActiveTab('focus')}
-              className={`px-3.5 py-2 rounded-xl transition-all ${
+              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
                 activeTab === 'focus' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -493,12 +531,13 @@ export default function App() {
             </button>
           </nav>
 
-          <div className="flex items-center gap-2">
+          {/* Right Action Button */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setActiveTab('focus')}
-              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 transition shadow-md shadow-pink-200"
+              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 transition shadow-md shadow-pink-200 shrink-0 whitespace-nowrap"
             >
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Makkah Reader</span>
             </button>
           </div>
@@ -615,15 +654,15 @@ export default function App() {
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
                       Kategori Doa
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      {['Kesihatan', 'Rezeki', 'Ampunan', 'Zuriat', 'Umum'].map((cat) => (
+                    <div className="flex flex-wrap gap-2">
+                      {DOA_CATEGORIES.map((cat) => (
                         <button
                           key={cat}
                           type="button"
                           onClick={() => setCategory(cat)}
-                          className={`py-2 px-3 rounded-xl text-xs font-semibold border transition text-center ${
+                          className={`py-2 px-3.5 rounded-xl text-xs font-semibold border transition text-center ${
                             category === cat
-                              ? 'bg-pink-500 text-white border-pink-500 shadow-sm'
+                              ? 'bg-pink-500 text-white border-pink-500 shadow-sm font-bold'
                               : 'bg-pink-50/50 border-pink-100 text-slate-600 hover:bg-pink-100/60'
                           }`}
                         >
@@ -650,19 +689,33 @@ export default function App() {
                     />
                   </div>
 
-                  <div className="bg-pink-50/60 rounded-2xl p-4 border border-pink-100">
-                    <span className="text-xs font-bold text-pink-800 flex items-center gap-1.5 mb-2">
-                      <Sparkles className="w-3.5 h-3.5 text-pink-500" /> Perlukan Inspirasi Ayat Doa?
-                    </span>
+                  {/* Contoh Doa Berdasarkan Kategori Dipilih */}
+                  <div className="bg-gradient-to-br from-pink-50/90 via-white to-rose-50/70 rounded-2xl p-4 border border-pink-200/80 shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-pink-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-pink-500 shrink-0" /> 
+                        Contoh Doa ({category})
+                      </span>
+                      <span className="text-[11px] text-pink-600 font-medium hidden sm:inline">
+                        Klik pilihan untuk isi borang terus
+                      </span>
+                    </div>
                     <div className="flex flex-col gap-2">
-                      {PRESET_INSPIRATIONS.slice(0, 2).map((insp, idx) => (
+                      {(CONTOH_DOA_BY_CATEGORY[category] || CONTOH_DOA_BY_CATEGORY['Umum']).map((insp, idx) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => setMessage(insp)}
-                          className="text-left text-xs bg-white text-slate-700 p-2.5 rounded-xl border border-pink-100 hover:border-pink-300 hover:text-pink-700 transition"
+                          onClick={() => {
+                            setMessage(insp);
+                            setToastMessage(`Contoh doa ${category} #${idx + 1} dimasukkan ke borang!`);
+                            setTimeout(() => setToastMessage(null), 2500);
+                          }}
+                          className="group text-left text-xs bg-white hover:bg-pink-50/60 text-slate-700 hover:text-pink-800 p-3 rounded-xl border border-pink-100 hover:border-pink-300 transition-all shadow-xs flex items-start gap-2.5 active:scale-[0.99]"
                         >
-                          "{insp}"
+                          <span className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-pink-100 text-pink-700 font-bold flex items-center justify-center text-[10px] group-hover:bg-pink-600 group-hover:text-white transition">
+                            {idx + 1}
+                          </span>
+                          <span className="leading-relaxed flex-1">"{insp}"</span>
                         </button>
                       ))}
                     </div>
@@ -809,11 +862,9 @@ export default function App() {
                     className="px-3 py-2 bg-pink-50/40 border border-pink-100 rounded-xl text-xs font-semibold text-slate-700 outline-none"
                   >
                     <option value="All">Semua Kategori</option>
-                    <option value="Kesihatan">Kesihatan</option>
-                    <option value="Rezeki">Rezeki</option>
-                    <option value="Ampunan">Ampunan</option>
-                    <option value="Zuriat">Zuriat</option>
-                    <option value="Umum">Umum</option>
+                    {DOA_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
 
                   <select
