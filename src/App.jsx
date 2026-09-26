@@ -24,6 +24,8 @@ import {
   RotateCcw,
   Trash2,
   Lock,
+  Unlock,
+  ShieldCheck,
   Plus,
   Flower2,
   Crown,
@@ -222,6 +224,35 @@ export default function App() {
   const [pilgrimName, setPilgrimName] = useState('Syahidah Zulkafli');
   const [pilgrimSlug, setPilgrimSlug] = useState('syahidahzulkafli');
   
+  // Access Control: Owner (Syahidah) vs Public Visitor
+  const [isOwner, setIsOwner] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('titipandoa_owner_authenticated');
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true' || window.location.hash === '#owner') {
+      return true;
+    }
+    return stored === 'true';
+  });
+
+  const [ownerPin, setOwnerPin] = useState(() => {
+    if (typeof window === 'undefined') return '1234';
+    return localStorage.getItem('titipandoa_owner_pin') || '1234';
+  });
+
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [showChangePinModal, setShowChangePinModal] = useState(false);
+  const [newPinInput, setNewPinInput] = useState('');
+
+  // Guard: If not owner, lock activeTab strictly to 'submission'
+  useEffect(() => {
+    if (!isOwner && activeTab !== 'submission') {
+      setActiveTab('submission');
+    }
+  }, [isOwner, activeTab]);
+
   // Submission Form State
   const [senderName, setSenderName] = useState('');
   const [category, setCategory] = useState('Kesihatan');
@@ -312,10 +343,49 @@ export default function App() {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`https://titipandoa.app/p/${pilgrimSlug}`);
+    const publicUrl = window.location.origin + window.location.pathname;
+    navigator.clipboard.writeText(publicUrl);
     setCopiedLink(true);
-    showToast('Pautan peribadi Titipan Doa berjaya disalin!');
-    setTimeout(() => setCopiedLink(false), 2000);
+    showToast('Pautan Borang Titipan Doa berjaya disalin! Tetamu hanya dapat melihat borang.');
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleUnlock = (e) => {
+    if (e) e.preventDefault();
+    if (pinInput.trim() === ownerPin.trim()) {
+      setIsOwner(true);
+      localStorage.setItem('titipandoa_owner_authenticated', 'true');
+      setShowPinModal(false);
+      setPinInput('');
+      setPinError('');
+      setActiveTab('dashboard');
+      showToast(`Selamat kembali, ${pilgrimName}! Akses Jemaah telah dibuka 🌸`);
+    } else {
+      setPinError('PIN salah. Sila cuba lagi.');
+    }
+  };
+
+  const handleLock = () => {
+    setIsOwner(false);
+    localStorage.removeItem('titipandoa_owner_authenticated');
+    if (window.location.search.includes('admin=') || window.location.hash === '#owner') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    setActiveTab('submission');
+    showToast('Mod Awam diaktifkan. Pengguna lain hanya dapat melihat Borang Titipan Doa 🔒');
+  };
+
+  const handleChangePin = (e) => {
+    if (e) e.preventDefault();
+    if (newPinInput.trim().length < 4) {
+      showToast('PIN mestilah sekurang-kurangnya 4 digit.');
+      return;
+    }
+    setOwnerPin(newPinInput.trim());
+    localStorage.setItem('titipandoa_owner_pin', newPinInput.trim());
+    setShowChangePinModal(false);
+    setNewPinInput('');
+    showToast('PIN Pemilik berjaya dikemaskini!');
   };
 
   const toggleChecklist = (id) => {
@@ -472,6 +542,11 @@ export default function App() {
                 <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap hidden sm:inline">
                   {pilgrimName}
                 </span>
+                {isOwner && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-bold whitespace-nowrap flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-emerald-600" /> Mod Jemaah
+                  </span>
+                )}
               </div>
               <p className="text-[10px] text-pink-500 font-medium hidden 2xl:block whitespace-nowrap leading-none mt-0.5">
                 Titipkan doa, iringi perjalanan ke Tanah Suci.
@@ -479,121 +554,150 @@ export default function App() {
             </div>
           </div>
 
-          {/* Navigation Tabs (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 bg-pink-50/60 p-1.5 rounded-2xl border border-pink-100 text-xs font-semibold shrink-0">
+          {/* Navigation Tabs (Desktop) - Only Visible to Owner */}
+          {isOwner && (
+            <nav className="hidden lg:flex items-center gap-1 bg-pink-50/60 p-1.5 rounded-2xl border border-pink-100 text-xs font-semibold shrink-0">
+              <button
+                onClick={() => setActiveTab('submission')}
+                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
+                  activeTab === 'submission' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Borang Titipan
+              </button>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
+                  activeTab === 'dashboard' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Koleksi Doa
+              </button>
+              <button
+                onClick={() => setActiveTab('checklist')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'checklist' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ListTodo className="w-3.5 h-3.5 shrink-0" /> Checklist
+              </button>
+              <button
+                onClick={() => setActiveTab('itinerary')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'itinerary' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" /> Itinerary
+              </button>
+              <button
+                onClick={() => setActiveTab('timeline')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'timeline' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5 shrink-0" /> Timeline
+              </button>
+              <button
+                onClick={() => setActiveTab('focus')}
+                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
+                  activeTab === 'focus' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Focus Reader
+              </button>
+            </nav>
+          )}
+
+          {/* Right Action Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {isOwner ? (
+              <>
+                <button
+                  onClick={handleLock}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition border border-slate-200"
+                  title="Kunci sesi & uji mod awam"
+                >
+                  <Lock className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="hidden sm:inline">Kunci / Mod Awam</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('focus')}
+                  className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 transition shadow-md shadow-pink-200 shrink-0 whitespace-nowrap"
+                >
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Makkah Reader</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setPinError('');
+                  setPinInput('');
+                  setShowPinModal(true);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-semibold flex items-center gap-1.5 transition border border-pink-200/80 shadow-xs active:scale-95"
+                title="Log masuk untuk pemilik doa"
+              >
+                <Lock className="w-3.5 h-3.5 text-pink-500" />
+                <span>Akses Jemaah</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Navigation Bar - Only for Owner */}
+        {isOwner && (
+          <div className="lg:hidden flex border-t border-pink-100 bg-white px-2 py-2 overflow-x-auto gap-1">
             <button
               onClick={() => setActiveTab('submission')}
-              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                activeTab === 'submission' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                activeTab === 'submission' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
               }`}
             >
               Borang Titipan
             </button>
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                activeTab === 'dashboard' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                activeTab === 'dashboard' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
               }`}
             >
-              Koleksi Doa
+              Doa Hub
             </button>
             <button
               onClick={() => setActiveTab('checklist')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'checklist' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                activeTab === 'checklist' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
               }`}
             >
-              <ListTodo className="w-3.5 h-3.5 shrink-0" /> Checklist
+              Checklist ({stats.checklistPercent}%)
             </button>
             <button
               onClick={() => setActiveTab('itinerary')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'itinerary' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                activeTab === 'itinerary' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5 shrink-0" /> Itinerary
+              Calendar & Flights
             </button>
             <button
               onClick={() => setActiveTab('timeline')}
-              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === 'timeline' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                activeTab === 'timeline' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
               }`}
             >
-              <Compass className="w-3.5 h-3.5 shrink-0" /> Timeline
+              Timeline
             </button>
             <button
-              onClick={() => setActiveTab('focus')}
-              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                activeTab === 'focus' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => setActiveTab('tech_guide')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                activeTab === 'tech_guide' ? 'bg-pink-600 text-white' : 'text-pink-700'
               }`}
             >
-              Focus Reader
-            </button>
-          </nav>
-
-          {/* Right Action Button */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setActiveTab('focus')}
-              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 transition shadow-md shadow-pink-200 shrink-0 whitespace-nowrap"
-            >
-              <BookOpen className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Makkah Reader</span>
+              Supabase/Netlify
             </button>
           </div>
-        </div>
-
-        {/* Mobile Navigation Bar */}
-        <div className="lg:hidden flex border-t border-pink-100 bg-white px-2 py-2 overflow-x-auto gap-1">
-          <button
-            onClick={() => setActiveTab('submission')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-              activeTab === 'submission' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-            }`}
-          >
-            Borang Titipan
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-              activeTab === 'dashboard' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-            }`}
-          >
-            Doa Hub
-          </button>
-          <button
-            onClick={() => setActiveTab('checklist')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-              activeTab === 'checklist' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-            }`}
-          >
-            Checklist ({stats.checklistPercent}%)
-          </button>
-          <button
-            onClick={() => setActiveTab('itinerary')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-              activeTab === 'itinerary' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-            }`}
-          >
-            Calendar & Flights
-          </button>
-          <button
-            onClick={() => setActiveTab('timeline')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-              activeTab === 'timeline' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-            }`}
-          >
-            Timeline
-          </button>
-          <button
-            onClick={() => setActiveTab('tech_guide')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-              activeTab === 'tech_guide' ? 'bg-pink-600 text-white' : 'text-pink-700'
-            }`}
-          >
-            Supabase/Netlify
-          </button>
-        </div>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -755,12 +859,22 @@ export default function App() {
                   >
                     Titip Doa Lain
                   </button>
-                  <button
-                    onClick={() => setActiveTab('dashboard')}
-                    className="flex-1 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-xl text-sm shadow-md transition"
-                  >
-                    Buka Pilgrim Dashboard
-                  </button>
+                  {isOwner ? (
+                    <button
+                      onClick={() => setActiveTab('dashboard')}
+                      className="flex-1 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-xl text-sm shadow-md transition"
+                    >
+                      Buka Pilgrim Dashboard
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleCopyLink}
+                      className="flex-1 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      {copiedLink ? 'Pautan Disalin!' : 'Kongsi Pautan Borang'}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -796,6 +910,39 @@ export default function App() {
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {copiedLink ? 'Disalin' : 'Salin'}
+                </button>
+              </div>
+            </div>
+
+            {/* Privacy & Security Status Banner */}
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-pink-50 border border-emerald-200/80 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                    Mod Jemaah Aktif (Privasi Terkawal)
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Dilindungi PIN</span>
+                  </p>
+                  <p className="text-slate-600 text-[11px] mt-0.5">
+                    Hanya anda yang boleh melihat Koleksi Doa, Checklist & Itinerary. Orang lain yang membuka pautan hanya dapat melihat Borang Titipan Doa.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <button
+                  onClick={() => setShowChangePinModal(true)}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition shadow-2xs"
+                >
+                  Tukar PIN
+                </button>
+                <button
+                  onClick={handleLock}
+                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-2xs"
+                  title="Kunci sesi dan kembali ke mod awam"
+                >
+                  <Lock className="w-3 h-3" /> Kunci Sesi
                 </button>
               </div>
             </div>
@@ -1629,10 +1776,147 @@ create policy "Pilgrims can view own titipan doas"
 
       </main>
 
-      <footer className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500">
+      <footer className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500 space-y-2">
         <p className="font-medium text-pink-700">Titipan Doa — "Titipkan doa, iringi perjalanan ke Tanah Suci."</p>
-        <p className="mt-1 opacity-70">© 2026 Titipan Doa Platform. Custom personal dashboard built for Syahidah Zulkafli.</p>
+        <p className="opacity-70">© 2026 Titipan Doa Platform. Dikhaskan buat {pilgrimName}.</p>
+        {!isOwner && (
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                setPinError('');
+                setPinInput('');
+                setShowPinModal(true);
+              }}
+              className="text-[11px] text-pink-600/80 hover:text-pink-700 font-medium inline-flex items-center gap-1 hover:underline"
+            >
+              <Lock className="w-3 h-3" /> Log Masuk Jemaah (Pemilik Doa)
+            </button>
+          </div>
+        )}
       </footer>
+
+      {/* PIN Unlock Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 max-w-sm w-full shadow-2xl space-y-5 animate-scale-in">
+            <div className="flex justify-between items-start">
+              <div className="w-12 h-12 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center shadow-inner">
+                <Lock className="w-6 h-6" />
+              </div>
+              <button
+                onClick={() => setShowPinModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Akses Jemaah</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Hanya <span className="font-semibold text-pink-600">{pilgrimName}</span> yang boleh mengakses Koleksi Doa, Checklist, dan Itinerary. Sila masukkan 4-digit PIN anda.
+              </p>
+            </div>
+
+            <form onSubmit={handleUnlock} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="PIN Anda"
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value);
+                    setPinError('');
+                  }}
+                  autoFocus
+                  className="w-full text-center text-2xl tracking-[0.4em] font-mono py-3 px-4 rounded-xl border border-pink-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-pink-50/20"
+                />
+                {pinError && (
+                  <p className="text-xs text-rose-600 font-semibold mt-1.5 text-center">{pinError}</p>
+                )}
+                <p className="text-[11px] text-slate-400 text-center mt-2">
+                  (PIN lalai: <span className="font-mono font-bold text-slate-600">1234</span>)
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPinModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold rounded-xl text-xs transition shadow-md shadow-pink-200 flex items-center justify-center gap-1.5"
+                >
+                  <Unlock className="w-3.5 h-3.5" /> Buka Akses
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change PIN Modal */}
+      {showChangePinModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 max-w-sm w-full shadow-2xl space-y-5 animate-scale-in">
+            <div className="flex justify-between items-start">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <button
+                onClick={() => setShowChangePinModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Tukar PIN Pemilik</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Tetapkan PIN baharu anda untuk melindungi data doa peribadi.
+              </p>
+            </div>
+
+            <form onSubmit={handleChangePin} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="PIN Baharu (min. 4 digit)"
+                  value={newPinInput}
+                  onChange={(e) => setNewPinInput(e.target.value)}
+                  autoFocus
+                  className="w-full text-center text-xl tracking-[0.3em] font-mono py-3 px-4 rounded-xl border border-pink-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none bg-pink-50/20"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePinModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-1.5"
+                >
+                  Simpan PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
