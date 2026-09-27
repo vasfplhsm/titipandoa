@@ -220,7 +220,12 @@ const CONTOH_DOA_BY_CATEGORY = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'tech_guide'
-  const [doas, setDoas] = useState(INITIAL_DOAS);
+  const [doas, setDoas] = useState(() => {
+    try {
+      const saved = localStorage.getItem('titipandoa_doas');
+      return saved ? JSON.parse(saved) : INITIAL_DOAS;
+    } catch { return INITIAL_DOAS; }
+  });
   const [pilgrimName, setPilgrimName] = useState('Syahidah Zulkafli');
   const [pilgrimSlug, setPilgrimSlug] = useState('syahidahzulkafli');
   
@@ -271,16 +276,31 @@ export default function App() {
   const [readerTheme, setReaderTheme] = useState('soft_rose');
 
   // Checklist State
-  const [checklist, setChecklist] = useState(INITIAL_CHECKLIST);
+  const [checklist, setChecklist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('titipandoa_checklist');
+      return saved ? JSON.parse(saved) : INITIAL_CHECKLIST;
+    } catch { return INITIAL_CHECKLIST; }
+  });
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [newChecklistCat, setNewChecklistCat] = useState('Dokumen & Kewangan');
   const [editingChecklistId, setEditingChecklistId] = useState(null);
   const [editingChecklistText, setEditingChecklistText] = useState('');
 
   // Flight & Itinerary State
-  const [flights, setFlights] = useState(INITIAL_FLIGHTS);
+  const [flights, setFlights] = useState(() => {
+    try {
+      const saved = localStorage.getItem('titipandoa_flights');
+      return saved ? JSON.parse(saved) : INITIAL_FLIGHTS;
+    } catch { return INITIAL_FLIGHTS; }
+  });
   const [isEditingFlights, setIsEditingFlights] = useState(false);
-  const [itinerary, setItinerary] = useState(INITIAL_ITINERARY);
+  const [itinerary, setItinerary] = useState(() => {
+    try {
+      const saved = localStorage.getItem('titipandoa_itinerary');
+      return saved ? JSON.parse(saved) : INITIAL_ITINERARY;
+    } catch { return INITIAL_ITINERARY; }
+  });
   
   // New Itinerary Form State
   const [itDate, setItDate] = useState('2026-10-11');
@@ -288,6 +308,23 @@ export default function App() {
   const [itLocation, setItLocation] = useState('Makkah');
   const [itActivity, setItActivity] = useState('');
   const [itCategory, setItCategory] = useState('Ibadah');
+
+  // Persist data to localStorage whenever it changes
+  useEffect(() => {
+    try { localStorage.setItem('titipandoa_doas', JSON.stringify(doas)); } catch {}
+  }, [doas]);
+
+  useEffect(() => {
+    try { localStorage.setItem('titipandoa_checklist', JSON.stringify(checklist)); } catch {}
+  }, [checklist]);
+
+  useEffect(() => {
+    try { localStorage.setItem('titipandoa_flights', JSON.stringify(flights)); } catch {}
+  }, [flights]);
+
+  useEffect(() => {
+    try { localStorage.setItem('titipandoa_itinerary', JSON.stringify(itinerary)); } catch {}
+  }, [itinerary]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -343,10 +380,10 @@ export default function App() {
   };
 
   const handleCopyLink = () => {
-    const publicUrl = window.location.origin + window.location.pathname;
+    const publicUrl = 'https://titipandoa.netlify.app/';
     navigator.clipboard.writeText(publicUrl);
     setCopiedLink(true);
-    showToast('Pautan Borang Titipan Doa berjaya disalin! Tetamu hanya dapat melihat borang.');
+    showToast('Pautan https://titipandoa.netlify.app/ berjaya disalin! Tetamu hanya dapat melihat borang.');
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
@@ -901,7 +938,7 @@ export default function App() {
                   </div>
                   <div className="truncate">
                     <span className="block text-[10px] text-pink-700 font-semibold uppercase">Pautan Titipan Doa Anda</span>
-                    <span className="text-xs font-mono text-slate-700 truncate">titipandoa.app/p/{pilgrimSlug}</span>
+                    <span className="text-xs font-mono text-slate-700 truncate">titipandoa.netlify.app</span>
                   </div>
                 </div>
                 <button
