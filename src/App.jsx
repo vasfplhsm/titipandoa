@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { 
   Heart, 
@@ -291,9 +291,29 @@ export default function App() {
   const [itActivity, setItActivity] = useState('');
   const [itCategory, setItCategory] = useState('Ibadah');
 
-  // ─── Supabase: Load all data on mount ───────────────────────────────────────
-  const loadAllData = useCallback(async () => {
-    setIsLoading(true);
+  // ─── Supabase: Real-time Auto-Sync Engine ──────────────────────────────────
+  const realtimeChannelRef = useRef(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Broadcast any local mutations immediately to all other connected devices
+  const broadcastSync = useCallback((action) => {
+    if (realtimeChannelRef.current) {
+      try {
+        realtimeChannelRef.current.send({
+          type: 'broadcast',
+          event: 'sync',
+          payload: { action, timestamp: Date.now() }
+        });
+      } catch (e) {
+        console.warn('Realtime broadcast failed:', e);
+      }
+    }
+  }, []);
+
+  const loadAllData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    else setIsSyncing(true);
+
     try {
       const [doasRes, checklistRes, flightsRes, itineraryRes] = await Promise.all([
         supabase.from('doas').select('*').order('created_at', { ascending: false }),
@@ -325,7 +345,6 @@ export default function App() {
       if (flightsRes.data && flightsRes.data.value) {
         setFlights(flightsRes.data.value);
       } else {
-        // Seed default flights
         await supabase.from('app_settings').upsert({ key: 'flights', value: INITIAL_FLIGHTS }, { onConflict: 'key' });
         setFlights(INITIAL_FLIGHTS);
       }
@@ -342,12 +361,60 @@ export default function App() {
     } catch (err) {
       console.error('Error loading data from Supabase:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
+      else setTimeout(() => setIsSyncing(false), 400);
     }
   }, []);
 
+  // Set up Realtime WebSockets, Background Polling & Visibility Sync
   useEffect(() => {
-    loadAllData();
+    // Initial fetch with spinner
+    loadAllData(false);
+
+    // Supabase Realtime Channel
+    const channel = supabase.channel('titipandoa_realtime');
+    realtimeChannelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'sync' }, () => {
+        loadAllData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'doas' }, () => {
+        loadAllData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist' }, () => {
+        loadAllData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'itinerary' }, () => {
+        loadAllData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, () => {
+        loadAllData(true);
+      })
+      .subscribe();
+
+    // 1. Periodic background sync every 5 seconds (seamless fallback)
+    const pollInterval = setInterval(() => {
+      loadAllData(true);
+    }, 5000);
+
+    // 2. Immediate sync when user refocuses tab or unlocks phone screen
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadAllData(true);
+      }
+    };
+    const handleFocus = () => loadAllData(true);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+      supabase.removeChannel(channel);
+    };
   }, [loadAllData]);
 
   const showToast = (msg) => {
@@ -376,6 +443,7 @@ export default function App() {
     if (!error && data) {
       setDoas(prev => [data, ...prev]);
     }
+    broadcastSync('new_doa');
     setIsSubmitted(true);
     showToast('Titipan doa anda berjaya dihantar! Jazakallah Khair. 🌸');
   };
@@ -393,6 +461,7 @@ export default function App() {
     const updated = { is_read: !doa.is_read };
     setDoas(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
     await supabase.from('doas').update(updated).eq('id', id);
+    broadcastSync('toggle_read');
   };
 
   const toggleBookmark = async (id) => {
@@ -401,6 +470,7 @@ export default function App() {
     const updated = { is_bookmarked: !doa.is_bookmarked };
     setDoas(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
     await supabase.from('doas').update(updated).eq('id', id);
+    broadcastSync('toggle_bookmark');
   };
 
   const incrementAmin = async (id) => {
@@ -409,20 +479,22 @@ export default function App() {
     const newCount = doa.amin_count + 1;
     setDoas(prev => prev.map(d => d.id === id ? { ...d, amin_count: newCount } : d));
     await supabase.from('doas').update({ amin_count: newCount }).eq('id', id);
+    broadcastSync('increment_amin');
     showToast('Satu ucapan Amin telah dititipkan dengan penuh kasih! 🤲💖');
   };
 
   const handleDeleteDoa = async (id) => {
     setDoas(prev => prev.filter(d => d.id !== id));
     await supabase.from('doas').delete().eq('id', id);
+    broadcastSync('delete_doa');
     showToast('Doa telah dipadam.');
   };
 
   const handleCopyLink = () => {
-    const publicUrl = 'https://titipandoa.netlify.app/';
+    const publicUrl = window.location.href.split('#')[0].split('?')[0];
     navigator.clipboard.writeText(publicUrl);
     setCopiedLink(true);
-    showToast('Pautan https://titipandoa.netlify.app/ berjaya disalin! Tetamu hanya dapat melihat borang.');
+    showToast(`Pautan ${publicUrl} berjaya disalin! Tetamu hanya dapat melihat borang.`);
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
@@ -470,6 +542,7 @@ export default function App() {
     const updated = { completed: !item.completed };
     setChecklist(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
     await supabase.from('checklist').update(updated).eq('id', id);
+    broadcastSync('toggle_checklist');
   };
 
   const handleAddChecklistItem = async (e) => {
@@ -484,6 +557,7 @@ export default function App() {
     if (!error && data) {
       setChecklist(prev => [...prev, data]);
     }
+    broadcastSync('add_checklist');
     setNewChecklistItem('');
     showToast('Item baru ditambah ke senarai semak!');
   };
@@ -498,12 +572,14 @@ export default function App() {
     setChecklist(prev => prev.map(item => item.id === id ? { ...item, ...updated } : item));
     setEditingChecklistId(null);
     await supabase.from('checklist').update(updated).eq('id', id);
+    broadcastSync('edit_checklist');
     showToast('Perkara disemak dikemas kini!');
   };
 
   const deleteChecklistItem = async (id) => {
     setChecklist(prev => prev.filter(item => item.id !== id));
     await supabase.from('checklist').delete().eq('id', id);
+    broadcastSync('delete_checklist');
     showToast('Item dipadam dari senarai.');
   };
 
@@ -521,6 +597,7 @@ export default function App() {
     if (!error && data) {
       setItinerary(prev => [...prev, data].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
     }
+    broadcastSync('add_itinerary');
     setItActivity('');
     showToast('Atur cara baru berjaya ditambah!');
   };
@@ -528,6 +605,7 @@ export default function App() {
   const handleDeleteItinerary = async (id) => {
     setItinerary(prev => prev.filter(it => it.id !== id));
     await supabase.from('itinerary').delete().eq('id', id);
+    broadcastSync('delete_itinerary');
     showToast('Atur cara dipadam.');
   };
 
@@ -645,6 +723,13 @@ export default function App() {
                     <Crown className="w-3 h-3 text-emerald-600" /> Mod Jemaah
                   </span>
                 )}
+                <span className="text-[10px] bg-emerald-50/90 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap flex items-center gap-1.5 shadow-2xs" title="Auto-sync realtime aktif antara semua peranti">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="hidden sm:inline">Auto-sync</span> {isSyncing ? 'Menyegerak...' : 'Langsung'}
+                </span>
               </div>
               <p className="text-[10px] text-pink-500 font-medium hidden 2xl:block whitespace-nowrap leading-none mt-0.5">
                 Titipkan doa, iringi perjalanan ke Tanah Suci.
@@ -1367,6 +1452,7 @@ export default function App() {
                   if (isEditingFlights) {
                     // Save flights to Supabase when closing edit mode
                     await supabase.from('app_settings').upsert({ key: 'flights', value: flights }, { onConflict: 'key' });
+                    broadcastSync('flights_saved');
                     showToast('Maklumat penerbangan berjaya disimpan! ✈️');
                   }
                   setIsEditingFlights(!isEditingFlights);
