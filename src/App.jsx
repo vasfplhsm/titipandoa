@@ -303,11 +303,12 @@ export default function App() {
       ]);
 
       if (doasRes.data) {
-        setDoas(doasRes.data.length > 0 ? doasRes.data : INITIAL_DOAS);
-        // If DB is empty, seed with initial data
-        if (doasRes.data.length === 0) {
-          await supabase.from('doas').insert(INITIAL_DOAS);
-          setDoas(INITIAL_DOAS);
+        if (doasRes.data.length > 0) {
+          setDoas(doasRes.data);
+        } else {
+          const toInsert = INITIAL_DOAS.map(({ id, ...rest }) => rest);
+          const { data } = await supabase.from('doas').insert(toInsert).select();
+          setDoas(data || INITIAL_DOAS);
         }
       }
 
@@ -315,8 +316,9 @@ export default function App() {
         if (checklistRes.data.length > 0) {
           setChecklist(checklistRes.data);
         } else {
-          await supabase.from('checklist').insert(INITIAL_CHECKLIST);
-          setChecklist(INITIAL_CHECKLIST);
+          const toInsert = INITIAL_CHECKLIST.map(({ id, ...rest }) => rest);
+          const { data } = await supabase.from('checklist').insert(toInsert).select();
+          setChecklist(data || INITIAL_CHECKLIST);
         }
       }
 
@@ -332,8 +334,9 @@ export default function App() {
         if (itineraryRes.data.length > 0) {
           setItinerary(itineraryRes.data);
         } else {
-          await supabase.from('itinerary').insert(INITIAL_ITINERARY);
-          setItinerary(INITIAL_ITINERARY);
+          const toInsert = INITIAL_ITINERARY.map(({ id, ...rest }) => rest);
+          const { data } = await supabase.from('itinerary').insert(toInsert).select();
+          setItinerary(data || INITIAL_ITINERARY);
         }
       }
     } catch (err) {
