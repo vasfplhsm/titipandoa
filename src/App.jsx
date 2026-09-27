@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from './supabaseClient';
 import { 
   Heart, 
   Send, 
@@ -220,12 +221,8 @@ const CONTOH_DOA_BY_CATEGORY = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'tech_guide'
-  const [doas, setDoas] = useState(() => {
-    try {
-      const saved = localStorage.getItem('titipandoa_doas');
-      return saved ? JSON.parse(saved) : INITIAL_DOAS;
-    } catch { return INITIAL_DOAS; }
-  });
+  const [doas, setDoas] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [pilgrimName, setPilgrimName] = useState('Syahidah Zulkafli');
   const [pilgrimSlug, setPilgrimSlug] = useState('syahidahzulkafli');
   
@@ -276,31 +273,16 @@ export default function App() {
   const [readerTheme, setReaderTheme] = useState('soft_rose');
 
   // Checklist State
-  const [checklist, setChecklist] = useState(() => {
-    try {
-      const saved = localStorage.getItem('titipandoa_checklist');
-      return saved ? JSON.parse(saved) : INITIAL_CHECKLIST;
-    } catch { return INITIAL_CHECKLIST; }
-  });
+  const [checklist, setChecklist] = useState([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [newChecklistCat, setNewChecklistCat] = useState('Dokumen & Kewangan');
   const [editingChecklistId, setEditingChecklistId] = useState(null);
   const [editingChecklistText, setEditingChecklistText] = useState('');
 
   // Flight & Itinerary State
-  const [flights, setFlights] = useState(() => {
-    try {
-      const saved = localStorage.getItem('titipandoa_flights');
-      return saved ? JSON.parse(saved) : INITIAL_FLIGHTS;
-    } catch { return INITIAL_FLIGHTS; }
-  });
+  const [flights, setFlights] = useState(INITIAL_FLIGHTS);
   const [isEditingFlights, setIsEditingFlights] = useState(false);
-  const [itinerary, setItinerary] = useState(() => {
-    try {
-      const saved = localStorage.getItem('titipandoa_itinerary');
-      return saved ? JSON.parse(saved) : INITIAL_ITINERARY;
-    } catch { return INITIAL_ITINERARY; }
-  });
+  const [itinerary, setItinerary] = useState([]);
   
   // New Itinerary Form State
   const [itDate, setItDate] = useState('2026-10-11');
@@ -309,29 +291,68 @@ export default function App() {
   const [itActivity, setItActivity] = useState('');
   const [itCategory, setItCategory] = useState('Ibadah');
 
-  // Persist data to localStorage whenever it changes
-  useEffect(() => {
-    try { localStorage.setItem('titipandoa_doas', JSON.stringify(doas)); } catch {}
-  }, [doas]);
+  // ─── Supabase: Load all data on mount ───────────────────────────────────────
+  const loadAllData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [doasRes, checklistRes, flightsRes, itineraryRes] = await Promise.all([
+        supabase.from('doas').select('*').order('created_at', { ascending: false }),
+        supabase.from('checklist').select('*').order('id', { ascending: true }),
+        supabase.from('app_settings').select('value').eq('key', 'flights').single(),
+        supabase.from('itinerary').select('*').order('date', { ascending: true }).order('time', { ascending: true }),
+      ]);
+
+      if (doasRes.data) {
+        setDoas(doasRes.data.length > 0 ? doasRes.data : INITIAL_DOAS);
+        // If DB is empty, seed with initial data
+        if (doasRes.data.length === 0) {
+          await supabase.from('doas').insert(INITIAL_DOAS);
+          setDoas(INITIAL_DOAS);
+        }
+      }
+
+      if (checklistRes.data) {
+        if (checklistRes.data.length > 0) {
+          setChecklist(checklistRes.data);
+        } else {
+          await supabase.from('checklist').insert(INITIAL_CHECKLIST);
+          setChecklist(INITIAL_CHECKLIST);
+        }
+      }
+
+      if (flightsRes.data && flightsRes.data.value) {
+        setFlights(flightsRes.data.value);
+      } else {
+        // Seed default flights
+        await supabase.from('app_settings').upsert({ key: 'flights', value: INITIAL_FLIGHTS }, { onConflict: 'key' });
+        setFlights(INITIAL_FLIGHTS);
+      }
+
+      if (itineraryRes.data) {
+        if (itineraryRes.data.length > 0) {
+          setItinerary(itineraryRes.data);
+        } else {
+          await supabase.from('itinerary').insert(INITIAL_ITINERARY);
+          setItinerary(INITIAL_ITINERARY);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading data from Supabase:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    try { localStorage.setItem('titipandoa_checklist', JSON.stringify(checklist)); } catch {}
-  }, [checklist]);
-
-  useEffect(() => {
-    try { localStorage.setItem('titipandoa_flights', JSON.stringify(flights)); } catch {}
-  }, [flights]);
-
-  useEffect(() => {
-    try { localStorage.setItem('titipandoa_itinerary', JSON.stringify(itinerary)); } catch {}
-  }, [itinerary]);
+    loadAllData();
+  }, [loadAllData]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleDoaSubmit = (e) => {
+  const handleDoaSubmit = async (e) => {
     e.preventDefault();
     if (!senderName.trim() || !message.trim()) {
       showToast('Sila isi nama dan pesanan doa anda.');
@@ -339,7 +360,6 @@ export default function App() {
     }
 
     const newDoa = {
-      id: `doa-${Date.now()}`,
       sender_name: senderName.trim(),
       category: category,
       message: message.trim(),
@@ -349,7 +369,10 @@ export default function App() {
       created_at: new Date().toISOString()
     };
 
-    setDoas([newDoa, ...doas]);
+    const { data, error } = await supabase.from('doas').insert([newDoa]).select().single();
+    if (!error && data) {
+      setDoas(prev => [data, ...prev]);
+    }
     setIsSubmitted(true);
     showToast('Titipan doa anda berjaya dihantar! Jazakallah Khair. 🌸');
   };
@@ -361,21 +384,34 @@ export default function App() {
     setIsSubmitted(false);
   };
 
-  const toggleReadStatus = (id) => {
-    setDoas(doas.map(d => d.id === id ? { ...d, is_read: !d.is_read } : d));
+  const toggleReadStatus = async (id) => {
+    const doa = doas.find(d => d.id === id);
+    if (!doa) return;
+    const updated = { is_read: !doa.is_read };
+    setDoas(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
+    await supabase.from('doas').update(updated).eq('id', id);
   };
 
-  const toggleBookmark = (id) => {
-    setDoas(doas.map(d => d.id === id ? { ...d, is_bookmarked: !d.is_bookmarked } : d));
+  const toggleBookmark = async (id) => {
+    const doa = doas.find(d => d.id === id);
+    if (!doa) return;
+    const updated = { is_bookmarked: !doa.is_bookmarked };
+    setDoas(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
+    await supabase.from('doas').update(updated).eq('id', id);
   };
 
-  const incrementAmin = (id) => {
-    setDoas(doas.map(d => d.id === id ? { ...d, amin_count: d.amin_count + 1 } : d));
+  const incrementAmin = async (id) => {
+    const doa = doas.find(d => d.id === id);
+    if (!doa) return;
+    const newCount = doa.amin_count + 1;
+    setDoas(prev => prev.map(d => d.id === id ? { ...d, amin_count: newCount } : d));
+    await supabase.from('doas').update({ amin_count: newCount }).eq('id', id);
     showToast('Satu ucapan Amin telah dititipkan dengan penuh kasih! 🤲💖');
   };
 
-  const handleDeleteDoa = (id) => {
-    setDoas(doas.filter(d => d.id !== id));
+  const handleDeleteDoa = async (id) => {
+    setDoas(prev => prev.filter(d => d.id !== id));
+    await supabase.from('doas').delete().eq('id', id);
     showToast('Doa telah dipadam.');
   };
 
@@ -425,20 +461,26 @@ export default function App() {
     showToast('PIN Pemilik berjaya dikemaskini!');
   };
 
-  const toggleChecklist = (id) => {
-    setChecklist(checklist.map(item => item.id === id ? { ...item, completed: !item.completed } : item));
+  const toggleChecklist = async (id) => {
+    const item = checklist.find(c => c.id === id);
+    if (!item) return;
+    const updated = { completed: !item.completed };
+    setChecklist(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
+    await supabase.from('checklist').update(updated).eq('id', id);
   };
 
-  const handleAddChecklistItem = (e) => {
+  const handleAddChecklistItem = async (e) => {
     e.preventDefault();
     if (!newChecklistItem.trim()) return;
     const newItem = {
-      id: `c-${Date.now()}`,
       category: newChecklistCat,
       text: newChecklistItem.trim(),
       completed: false
     };
-    setChecklist([...checklist, newItem]);
+    const { data, error } = await supabase.from('checklist').insert([newItem]).select().single();
+    if (!error && data) {
+      setChecklist(prev => [...prev, data]);
+    }
     setNewChecklistItem('');
     showToast('Item baru ditambah ke senarai semak!');
   };
@@ -448,35 +490,41 @@ export default function App() {
     setEditingChecklistText(item.text);
   };
 
-  const saveEditChecklist = (id) => {
-    setChecklist(checklist.map(item => item.id === id ? { ...item, text: editingChecklistText } : item));
+  const saveEditChecklist = async (id) => {
+    const updated = { text: editingChecklistText };
+    setChecklist(prev => prev.map(item => item.id === id ? { ...item, ...updated } : item));
     setEditingChecklistId(null);
+    await supabase.from('checklist').update(updated).eq('id', id);
     showToast('Perkara disemak dikemas kini!');
   };
 
-  const deleteChecklistItem = (id) => {
-    setChecklist(checklist.filter(item => item.id !== id));
+  const deleteChecklistItem = async (id) => {
+    setChecklist(prev => prev.filter(item => item.id !== id));
+    await supabase.from('checklist').delete().eq('id', id);
     showToast('Item dipadam dari senarai.');
   };
 
-  const handleAddItinerary = (e) => {
+  const handleAddItinerary = async (e) => {
     e.preventDefault();
     if (!itActivity.trim()) return;
     const newEntry = {
-      id: `it-${Date.now()}`,
       date: itDate,
       time: itTime,
       location: itLocation,
       activity: itActivity.trim(),
       category: itCategory
     };
-    setItinerary([...itinerary, newEntry].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
+    const { data, error } = await supabase.from('itinerary').insert([newEntry]).select().single();
+    if (!error && data) {
+      setItinerary(prev => [...prev, data].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
+    }
     setItActivity('');
     showToast('Atur cara baru berjaya ditambah!');
   };
 
-  const handleDeleteItinerary = (id) => {
-    setItinerary(itinerary.filter(it => it.id !== id));
+  const handleDeleteItinerary = async (id) => {
+    setItinerary(prev => prev.filter(it => it.id !== id));
+    await supabase.from('itinerary').delete().eq('id', id);
     showToast('Atur cara dipadam.');
   };
 
@@ -557,6 +605,16 @@ export default function App() {
         <div className="fixed top-5 right-5 z-50 bg-rose-950 text-pink-100 px-5 py-3 rounded-2xl shadow-2xl border border-pink-700/50 flex items-center gap-3 animate-bounce">
           <Sparkles className="w-5 h-5 text-pink-400" />
           <span className="text-sm font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 z-[60] bg-rose-50/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-200 animate-pulse">
+            <Flower2 className="w-7 h-7 text-white fill-white/20" />
+          </div>
+          <p className="text-sm font-semibold text-pink-700">Memuatkan data...</p>
         </div>
       )}
 
@@ -1302,10 +1360,17 @@ export default function App() {
               </div>
 
               <button
-                onClick={() => setIsEditingFlights(!isEditingFlights)}
+                onClick={async () => {
+                  if (isEditingFlights) {
+                    // Save flights to Supabase when closing edit mode
+                    await supabase.from('app_settings').upsert({ key: 'flights', value: flights }, { onConflict: 'key' });
+                    showToast('Maklumat penerbangan berjaya disimpan! ✈️');
+                  }
+                  setIsEditingFlights(!isEditingFlights);
+                }}
                 className="px-4 py-2.5 bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100 rounded-xl text-xs font-bold transition flex items-center gap-2"
               >
-                <Edit3 className="w-4 h-4" /> {isEditingFlights ? 'Tutup Suntingan' : 'Kemaskini Maklumat Penerbangan'}
+                <Edit3 className="w-4 h-4" /> {isEditingFlights ? 'Simpan & Tutup' : 'Kemaskini Maklumat Penerbangan'}
               </button>
             </div>
 
