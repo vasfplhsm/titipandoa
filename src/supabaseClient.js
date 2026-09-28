@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ojhawyxyezlckstcmydx.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qaGF3eXh5ZXpsY2tzdGNteWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MjI0NjAsImV4cCI6MjEwNTk5ODQ2MH0.BlpZhvKrfj_tc7JoQAAZaTT2zCykXzgvip9rwxUibys';
+// Values come from environment variables (see .env.example).
+// The anon key is a public browser key, but keeping it out of the source
+// avoids Netlify's secret scanner flagging the repo.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Add them to a local .env file or to your host environment variables.'
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
