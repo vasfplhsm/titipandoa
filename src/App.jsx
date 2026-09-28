@@ -109,7 +109,7 @@ const INTRO_NOTE = [
   "Wassalamualaikum w.b.t.",
 ];
 
-const PUBLIC_URL = 'https://vasfplhsm.github.io/titipandoa/';
+const PUBLIC_URL = 'https://titipandoa.netlify.app//';
 
 const CHECKLIST_CATEGORIES = [
   'Dokumen & Kewangan',
@@ -1135,7 +1135,7 @@ export default function App() {
                   </div>
                   <div className="truncate">
                     <span className="block text-[10px] text-pink-700 font-semibold uppercase">Pautan Titipan Doa Anda</span>
-                    <span className="text-xs font-mono text-slate-700 truncate">vasfplhsm.github.io/titipandoa</span>
+                    <span className="text-xs font-mono text-slate-700 truncate">https://titipandoa.netlify.app/</span>
                   </div>
                 </div>
                 <button
