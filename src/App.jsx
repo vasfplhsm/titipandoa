@@ -109,7 +109,7 @@ const INTRO_NOTE = [
   "Wassalamualaikum w.b.t.",
 ];
 
-const PUBLIC_URL = 'https://titipandoa.netlify.app//';
+const PUBLIC_URL = 'https://titipandoa.netlify.app/';
 
 const CHECKLIST_CATEGORIES = [
   'Dokumen & Kewangan',
@@ -335,6 +335,7 @@ export default function App() {
   // ─── Supabase: Real-time Auto-Sync Engine ──────────────────────────────────
   const realtimeChannelRef = useRef(null);
   const isEditingFlightsRef = useRef(false);
+  const seedingRef = useRef({});
 
   // Broadcast any local mutations immediately to all other connected devices
   const broadcastSync = useCallback((action) => {
@@ -355,32 +356,40 @@ export default function App() {
     if (!silent) setIsLoading(true);
 
     try {
-      const [doasRes, checklistRes, flightsRes, itineraryRes] = await Promise.all([
+      const [doasRes, checklistRes, flightsRes, itineraryRes, seededRes] = await Promise.all([
         supabase.from('doas').select('*').order('created_at', { ascending: false }),
         supabase.from('checklist').select('*').order('id', { ascending: true }),
         supabase.from('app_settings').select('value').eq('key', 'flights').single(),
         supabase.from('itinerary').select('*').order('date', { ascending: true }).order('time', { ascending: true }),
+        supabase.from('app_settings').select('key').in('key', ['seeded_doas', 'seeded_checklist', 'seeded_itinerary']),
       ]);
 
-      if (doasRes.data) {
-        if (doasRes.data.length > 0) {
-          setDoas(prev => JSON.stringify(prev) === JSON.stringify(doasRes.data) ? prev : doasRes.data);
-        } else {
-          const toInsert = INITIAL_DOAS.map(({ id, ...rest }) => rest);
-          const { data } = await supabase.from('doas').insert(toInsert).select();
-          setDoas(data || INITIAL_DOAS);
-        }
-      }
+      // Default sample data is inserted only ONCE per table. After that, an empty
+      // table means the user deleted everything on purpose, so it stays empty.
+      const seededKeys = new Set((seededRes.data || []).map(r => r.key));
+      const canSeed = !seededRes.error;
+      const markSeeded = (key) =>
+        supabase.from('app_settings').upsert({ key, value: { done: true } }, { onConflict: 'key' });
 
-      if (checklistRes.data) {
-        if (checklistRes.data.length > 0) {
-          setChecklist(prev => JSON.stringify(prev) === JSON.stringify(checklistRes.data) ? prev : checklistRes.data);
+      const syncTable = async (res, key, table, initial, setter) => {
+        if (!res.data) return;
+        if (res.data.length > 0) {
+          setter(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
+          if (canSeed && !seededKeys.has(key)) await markSeeded(key);
+        } else if (canSeed && !seededKeys.has(key) && !seedingRef.current[key]) {
+          seedingRef.current[key] = true;
+          await markSeeded(key);
+          const toInsert = initial.map(({ id: _id, ...rest }) => rest);
+          const { data } = await supabase.from(table).insert(toInsert).select();
+          setter(data || initial);
         } else {
-          const toInsert = INITIAL_CHECKLIST.map(({ id, ...rest }) => rest);
-          const { data } = await supabase.from('checklist').insert(toInsert).select();
-          setChecklist(data || INITIAL_CHECKLIST);
+          setter(prev => prev.length === 0 ? prev : []);
         }
-      }
+      };
+
+      await syncTable(doasRes, 'seeded_doas', 'doas', INITIAL_DOAS, setDoas);
+
+      await syncTable(checklistRes, 'seeded_checklist', 'checklist', INITIAL_CHECKLIST, setChecklist);
 
       if (flightsRes.data && flightsRes.data.value) {
         // Don't overwrite what the user is typing while in edit mode
@@ -392,15 +401,7 @@ export default function App() {
         setFlights(INITIAL_FLIGHTS);
       }
 
-      if (itineraryRes.data) {
-        if (itineraryRes.data.length > 0) {
-          setItinerary(prev => JSON.stringify(prev) === JSON.stringify(itineraryRes.data) ? prev : itineraryRes.data);
-        } else {
-          const toInsert = INITIAL_ITINERARY.map(({ id, ...rest }) => rest);
-          const { data } = await supabase.from('itinerary').insert(toInsert).select();
-          setItinerary(data || INITIAL_ITINERARY);
-        }
-      }
+      await syncTable(itineraryRes, 'seeded_itinerary', 'itinerary', INITIAL_ITINERARY, setItinerary);
     } catch (err) {
       console.error('Error loading data from Supabase:', err);
     } finally {
@@ -1741,6 +1742,10 @@ export default function App() {
 
             <div className="bg-white rounded-3xl border border-pink-100 p-6 shadow-sm space-y-4">
               <h3 className="font-bold text-sm text-slate-800">Senarai Atur Cara Terjadual ({itinerary.length})</h3>
+
+              {itinerary.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-6">Belum ada atur cara. Tambah di atas.</p>
+              )}
 
               <div className="space-y-3">
                 {itinerary.map(it => (
