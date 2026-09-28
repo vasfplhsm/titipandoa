@@ -17,9 +17,7 @@ import {
   Bookmark, 
   Search, 
   ChevronLeft, 
-  ChevronRight, 
-  Database, 
-  Cloud, 
+  ChevronRight,   
   HelpCircle, 
   Check, 
   RotateCcw,
@@ -95,6 +93,30 @@ const INITIAL_DOAS = [
     amin_count: 31,
     created_at: '2026-09-26T15:20:00Z'
   }
+];
+
+const INTRO_NOTE = [
+  "Assalamualaikum w.b.t.",
+  "Dengan penuh rasa syukur dan rendah hati, ingin saya khabarkan bahawa Insya-Allah pada 23 November 2026, saya akan berangkat ke Tanah Suci untuk mengerjakan ibadah umrah.",
+  "Sebelum kaki melangkah pergi, saya ingin mengambil kesempatan ini untuk memohon ampun dan maaf kepada semua sahabat, saudara-mara, jiran tetangga dan kenalan yang mengenali diri saya.",
+  "Sepanjang kita mengenali dan bergaul, mungkin ada kata-kata saya yang mengguris hati, perbuatan yang tidak menyenangkan, gurauan yang keterlaluan, atau salah dan silap saya yang saya sendiri tidak sedari. Dengan seikhlas hati, saya memohon maaf atas segala-galanya.",
+  "Jika ada yang terasa hati dengan saya, maafkanlah saya. Jika ada salah yang pernah saya lakukan, halalkanlah. Jika ada budi, pertolongan, makan minum dan apa jua yang pernah saya terima daripada kalian, saya juga memohon agar semuanya dihalalkan.",
+  "Perjalanan ke Tanah Suci ini merupakan satu amanah dan jemputan yang sangat saya syukuri. Saya sedar, banyak kekurangan diri dan masih banyak yang perlu diperbaiki. Oleh itu, saya sangat mengharapkan doa daripada kalian semua agar Allah SWT mempermudahkan setiap urusan saya, memberikan kesihatan dan kekuatan, melindungi saya sepanjang perjalanan, serta menerima segala ibadah yang saya lakukan.",
+  "Jika ada kesempatan di Tanah Suci nanti, Insya-Allah saya akan menitipkan doa buat kalian semua. Semoga Allah SWT mengurniakan kalian kesihatan yang baik, melapangkan rezeki, mempermudahkan segala urusan, mengurniakan ketenangan dalam kehidupan dan menjemput kalian juga menjadi tetamu-Nya pada waktu yang terbaik.",
+  "Akhir kata, maafkan segala salah dan silap saya, halalkan segala yang pernah saya terima, dan doakan perjalanan serta ibadah saya dipermudahkan.",
+  "Semoga selepas kepulangan nanti, saya kembali sebagai insan yang lebih baik, dengan hati yang lebih dekat kepada Allah SWT.",
+  "Mohon doa daripada kalian semua. 🤲🏻",
+  "Wassalamualaikum w.b.t.",
+];
+
+const PUBLIC_URL = 'https://vasfplhsm.github.io/titipandoa/';
+
+const CHECKLIST_CATEGORIES = [
+  'Dokumen & Kewangan',
+  'Ibadah & Kelengkapan Ihram',
+  'Ubat-ubatan & Kesihatan',
+  'Pakaian & Keperluan Harian',
+  'Lain-lain',
 ];
 
 const INITIAL_CHECKLIST = [
@@ -220,7 +242,7 @@ const CONTOH_DOA_BY_CATEGORY = {
 
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'tech_guide'
+  const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus'
   const [doas, setDoas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pilgrimName, setPilgrimName] = useState('Syahidah Zulkafli');
@@ -260,6 +282,25 @@ export default function App() {
   const [category, setCategory] = useState('Kesihatan');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  // Jump to the top once the form has actually rendered (the page gets shorter
+  // when the intro card is replaced, which cancels a smooth scroll on mobile)
+  useEffect(() => {
+    if (!showForm) return;
+    const jump = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    jump();
+    const raf = requestAnimationFrame(jump);
+    const t = setTimeout(jump, 80);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+    };
+  }, [showForm]);
   
   // Dashboard Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -293,7 +334,7 @@ export default function App() {
 
   // ─── Supabase: Real-time Auto-Sync Engine ──────────────────────────────────
   const realtimeChannelRef = useRef(null);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const isEditingFlightsRef = useRef(false);
 
   // Broadcast any local mutations immediately to all other connected devices
   const broadcastSync = useCallback((action) => {
@@ -312,7 +353,6 @@ export default function App() {
 
   const loadAllData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
-    else setIsSyncing(true);
 
     try {
       const [doasRes, checklistRes, flightsRes, itineraryRes] = await Promise.all([
@@ -324,7 +364,7 @@ export default function App() {
 
       if (doasRes.data) {
         if (doasRes.data.length > 0) {
-          setDoas(doasRes.data);
+          setDoas(prev => JSON.stringify(prev) === JSON.stringify(doasRes.data) ? prev : doasRes.data);
         } else {
           const toInsert = INITIAL_DOAS.map(({ id, ...rest }) => rest);
           const { data } = await supabase.from('doas').insert(toInsert).select();
@@ -334,7 +374,7 @@ export default function App() {
 
       if (checklistRes.data) {
         if (checklistRes.data.length > 0) {
-          setChecklist(checklistRes.data);
+          setChecklist(prev => JSON.stringify(prev) === JSON.stringify(checklistRes.data) ? prev : checklistRes.data);
         } else {
           const toInsert = INITIAL_CHECKLIST.map(({ id, ...rest }) => rest);
           const { data } = await supabase.from('checklist').insert(toInsert).select();
@@ -343,15 +383,18 @@ export default function App() {
       }
 
       if (flightsRes.data && flightsRes.data.value) {
-        setFlights(flightsRes.data.value);
-      } else {
+        // Don't overwrite what the user is typing while in edit mode
+        if (!isEditingFlightsRef.current) {
+          setFlights(prev => JSON.stringify(prev) === JSON.stringify(flightsRes.data.value) ? prev : flightsRes.data.value);
+        }
+      } else if (!isEditingFlightsRef.current) {
         await supabase.from('app_settings').upsert({ key: 'flights', value: INITIAL_FLIGHTS }, { onConflict: 'key' });
         setFlights(INITIAL_FLIGHTS);
       }
 
       if (itineraryRes.data) {
         if (itineraryRes.data.length > 0) {
-          setItinerary(itineraryRes.data);
+          setItinerary(prev => JSON.stringify(prev) === JSON.stringify(itineraryRes.data) ? prev : itineraryRes.data);
         } else {
           const toInsert = INITIAL_ITINERARY.map(({ id, ...rest }) => rest);
           const { data } = await supabase.from('itinerary').insert(toInsert).select();
@@ -362,9 +405,12 @@ export default function App() {
       console.error('Error loading data from Supabase:', err);
     } finally {
       if (!silent) setIsLoading(false);
-      else setTimeout(() => setIsSyncing(false), 400);
     }
   }, []);
+
+  useEffect(() => {
+    isEditingFlightsRef.current = isEditingFlights;
+  }, [isEditingFlights]);
 
   // Set up Realtime WebSockets, Background Polling & Visibility Sync
   useEffect(() => {
@@ -491,7 +537,7 @@ export default function App() {
   };
 
   const handleCopyLink = () => {
-    const publicUrl = window.location.href.split('#')[0].split('?')[0];
+    const publicUrl = PUBLIC_URL;
     navigator.clipboard.writeText(publicUrl);
     setCopiedLink(true);
     showToast(`Pautan ${publicUrl} berjaya disalin! Tetamu hanya dapat melihat borang.`);
@@ -723,13 +769,6 @@ export default function App() {
                     <Crown className="w-3 h-3 text-emerald-600" /> Mod Jemaah
                   </span>
                 )}
-                <span className="text-[10px] bg-emerald-50/90 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap flex items-center gap-1.5 shadow-2xs" title="Auto-sync realtime aktif antara semua peranti">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                  </span>
-                  <span className="hidden sm:inline">Auto-sync</span> {isSyncing ? 'Menyegerak...' : 'Langsung'}
-                </span>
               </div>
               <p className="text-[10px] text-pink-500 font-medium hidden 2xl:block whitespace-nowrap leading-none mt-0.5">
                 Titipkan doa, iringi perjalanan ke Tanah Suci.
@@ -871,14 +910,6 @@ export default function App() {
             >
               Timeline
             </button>
-            <button
-              onClick={() => setActiveTab('tech_guide')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                activeTab === 'tech_guide' ? 'bg-pink-600 text-white' : 'text-pink-700'
-              }`}
-            >
-              Supabase/Netlify
-            </button>
           </div>
         )}
       </header>
@@ -913,7 +944,27 @@ export default function App() {
               </div>
             </div>
 
-            {!isSubmitted ? (
+            {!isSubmitted && !isOwner && !showForm ? (
+              <div className="bg-white/90 backdrop-blur-xl border border-pink-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                <div className="space-y-3 text-sm text-slate-700 leading-relaxed">
+                  {INTRO_NOTE.map((para, idx) => (
+                    <p
+                      key={idx}
+                      className={idx === 0 || idx === INTRO_NOTE.length - 1 ? 'font-semibold text-pink-700' : ''}
+                    >
+                      {para}
+                    </p>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(true)}
+                  className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 shadow-md transition"
+                >
+                  <Heart className="w-4 h-4 fill-white/30" /> Titipkan doa anda di sini
+                </button>
+              </div>
+            ) : !isSubmitted ? (
               <div className="bg-white/90 backdrop-blur-xl border border-pink-200/80 rounded-3xl p-6 sm:p-8 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-800 mb-1 flex items-center gap-2">
                   <Heart className="w-5 h-5 text-pink-500 fill-pink-100" /> Titipkan Doa Ikhlas Anda
@@ -1084,7 +1135,7 @@ export default function App() {
                   </div>
                   <div className="truncate">
                     <span className="block text-[10px] text-pink-700 font-semibold uppercase">Pautan Titipan Doa Anda</span>
-                    <span className="text-xs font-mono text-slate-700 truncate">titipandoa.netlify.app</span>
+                    <span className="text-xs font-mono text-slate-700 truncate">vasfplhsm.github.io/titipandoa</span>
                   </div>
                 </div>
                 <button
@@ -1325,10 +1376,9 @@ export default function App() {
                   onChange={(e) => setNewChecklistCat(e.target.value)}
                   className="px-3 py-2.5 bg-pink-50/50 border border-pink-100 rounded-xl text-xs font-semibold text-slate-700 outline-none shrink-0"
                 >
-                  <option value="Dokumen & Kewangan">Dokumen & Kewangan</option>
-                  <option value="Ibadah & Kelengkapan Ihram">Ibadah & Kelengkapan Ihram</option>
-                  <option value="Ubat-ubatan & Kesihatan">Ubat-ubatan & Kesihatan</option>
-                  <option value="Pakaian & Keperluan Harian">Pakaian & Keperluan Harian</option>
+                  {CHECKLIST_CATEGORIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
 
                 <input
@@ -1348,7 +1398,7 @@ export default function App() {
               </form>
             </div>
 
-            {['Dokumen & Kewangan', 'Ibadah & Kelengkapan Ihram', 'Ubat-ubatan & Kesihatan', 'Pakaian & Keperluan Harian'].map(cat => {
+            {CHECKLIST_CATEGORIES.map(cat => {
               const catItems = checklist.filter(item => item.category === cat);
               if (catItems.length === 0) return null;
 
@@ -1896,75 +1946,6 @@ export default function App() {
             )}
           </div>
         )}
-
-        {/* TAB 7: SUPABASE & NETLIFY TECH GUIDE */}
-        {}
-        {activeTab === 'tech_guide' && (
-          <div className="max-w-4xl mx-auto space-y-8">
-            <div className="bg-gradient-to-r from-rose-950 via-pink-900 to-rose-950 text-white p-8 rounded-3xl shadow-xl">
-              <div className="flex items-center gap-3 mb-3">
-                <Database className="w-8 h-8 text-pink-400" />
-                <Cloud className="w-8 h-8 text-rose-300" />
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold">Titipan Doa Architecture Blueprint</h1>
-              <p className="text-pink-100/90 text-sm mt-2 max-w-2xl">
-                Panduan penuh penyepaduan pangkalan data Supabase PostgreSQL dan penyebaran ke Netlify untuk aplikasi Titipan Doa anda.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <Database className="w-5 h-5 text-pink-600" /> 1. Supabase SQL Schema Setup
-                </h3>
-                <span className="text-xs bg-pink-100 text-pink-800 font-bold px-2.5 py-1 rounded-full">
-                  PostgreSQL
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Jalankan skrip SQL berikut di Supabase SQL Editor untuk mencipta jadual `profiles` dan `titipan_doas` beserta polisi keselamatan Row Level Security (RLS).
-              </p>
-
-              <pre className="bg-slate-900 text-pink-300 p-4 rounded-2xl text-xs font-mono overflow-x-auto leading-relaxed">
-{`-- 1. Create Profiles Table for Pilgrims
-create table public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  username text unique not null,
-  full_name text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- 2. Create Titipan Doas Table
-create table public.titipan_doas (
-  id uuid default gen_random_uuid() primary key,
-  profile_id uuid references public.profiles(id) on delete cascade not null,
-  sender_name text not null,
-  category text default 'Umum'::text not null,
-  message text not null,
-  is_read boolean default false,
-  is_bookmarked boolean default false,
-  amin_count integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- 3. Enable Row Level Security (RLS)
-alter table public.profiles enable row level security;
-alter table public.titipan_doas enable row level security;
-
--- 4. RLS Policy: Anyone can submit a Titipan Doa (Public Insert)
-create policy "Public can insert titipan doas" 
-  on public.titipan_doas for insert 
-  with check (true);
-
--- 5. RLS Policy: Only Pilgrim can view their received Titipan Doas
-create policy "Pilgrims can view own titipan doas" 
-  on public.titipan_doas for select 
-  using (auth.uid() = profile_id);`}
-              </pre>
-            </div>
-          </div>
-        )}
-
       </main>
 
       <footer className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500 space-y-2">
