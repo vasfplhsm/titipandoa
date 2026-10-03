@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from './supabaseClient';
+import * as XLSX from 'xlsx';
 import { 
   Heart, 
   Send, 
@@ -39,7 +40,12 @@ import {
   X,
   Compass,
   ArrowRight,
-  FileText
+  FileText,
+  DollarSign,
+  TrendingUp,
+  Download,
+  PieChart,
+  Wallet
 } from 'lucide-react';
 
 const INITIAL_DOAS = [
@@ -202,6 +208,19 @@ const INITIAL_ITINERARY = [
 
 const DOA_CATEGORIES = ['Kesihatan', 'Rezeki', 'Ampunan', 'Zuriat', 'Jodoh', 'Keluarga', 'Umum'];
 
+const EXPENSE_CATEGORIES = [
+  { id: 'pakej', label: 'Pakej Umrah', icon: '🕌', color: 'from-violet-500 to-purple-600', light: 'bg-violet-50 text-violet-700 border-violet-200' },
+  { id: 'food', label: 'Makanan & Minuman', icon: '🍽️', color: 'from-orange-400 to-amber-500', light: 'bg-orange-50 text-orange-700 border-orange-200' },
+  { id: 'simcard', label: 'Kad SIM', icon: '📶', color: 'from-blue-400 to-cyan-500', light: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { id: 'transport', label: 'Pengangkutan', icon: '🚌', color: 'from-emerald-500 to-teal-600', light: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { id: 'accommodation', label: 'Penginapan', icon: '🏨', color: 'from-rose-500 to-pink-600', light: 'bg-rose-50 text-rose-700 border-rose-200' },
+  { id: 'shopping', label: 'Membeli-belah', icon: '🛍️', color: 'from-pink-500 to-fuchsia-600', light: 'bg-pink-50 text-pink-700 border-pink-200' },
+  { id: 'health', label: 'Kesihatan & Ubat', icon: '💊', color: 'from-red-400 to-rose-500', light: 'bg-red-50 text-red-700 border-red-200' },
+  { id: 'insuran', label: 'Insuran', icon: '🛡️', color: 'from-indigo-500 to-blue-600', light: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { id: 'souvenir', label: 'Souvenir', icon: '🎁', color: 'from-yellow-400 to-amber-500', light: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  { id: 'others', label: 'Lain-lain', icon: '📦', color: 'from-slate-400 to-slate-500', light: 'bg-slate-50 text-slate-700 border-slate-200' },
+];
+
 const CONTOH_DOA_BY_CATEGORY = {
   Kesihatan: [
     "Semoga diberikan kesihatan yang berpanjangan, tubuh badan yang cergas dan afiah, serta kekuatan fizikal untuk beribadah dengan sempurna di Tanah Suci.",
@@ -242,7 +261,7 @@ const CONTOH_DOA_BY_CATEGORY = {
 
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus'
+  const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'expenses'
   const [doas, setDoas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pilgrimName, setPilgrimName] = useState('Syahidah Zulkafli');
@@ -325,6 +344,113 @@ export default function App() {
   const [isEditingFlights, setIsEditingFlights] = useState(false);
   const [itinerary, setItinerary] = useState([]);
   
+  // ─── Expenses Tracker State ────────────────────────────────────────────────
+  const [expenses, setExpenses] = useState(() => {
+    try {
+      const saved = localStorage.getItem('titipandoa_expenses');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [budget, setBudget] = useState(() => {
+    try {
+      const saved = localStorage.getItem('titipandoa_budget');
+      return saved ? JSON.parse(saved) : { total: 5000, currency: 'MYR' };
+    } catch { return { total: 5000, currency: 'MYR' }; }
+  });
+  const [expForm, setExpForm] = useState({
+    description: '',
+    amount: '',
+    category: 'food',
+    date: new Date().toISOString().slice(0, 10),
+    notes: ''
+  });
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [budgetInput, setBudgetInput] = useState('');
+  const [expFilter, setExpFilter] = useState('all');
+
+  // Persist expenses & budget to localStorage
+  useEffect(() => {
+    localStorage.setItem('titipandoa_expenses', JSON.stringify(expenses));
+  }, [expenses]);
+  useEffect(() => {
+    localStorage.setItem('titipandoa_budget', JSON.stringify(budget));
+  }, [budget]);
+
+  const handleAddExpense = (e) => {
+    e.preventDefault();
+    if (!expForm.description.trim() || !expForm.amount) return;
+    const newExp = {
+      id: `exp-${Date.now()}`,
+      description: expForm.description.trim(),
+      amount: parseFloat(expForm.amount),
+      category: expForm.category,
+      date: expForm.date,
+      notes: expForm.notes.trim(),
+      created_at: new Date().toISOString()
+    };
+    setExpenses(prev => [newExp, ...prev]);
+    setExpForm(prev => ({ ...prev, description: '', amount: '', notes: '' }));
+    showToast('Perbelanjaan berjaya ditambah! 💰');
+  };
+
+  const handleDeleteExpense = (id) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+    showToast('Rekod perbelanjaan dipadam.');
+  };
+
+  const handleSaveBudget = (e) => {
+    if (e) e.preventDefault();
+    const val = parseFloat(budgetInput);
+    if (isNaN(val) || val <= 0) { showToast('Sila masukkan amaun bajet yang sah.'); return; }
+    setBudget(prev => ({ ...prev, total: val }));
+    setEditingBudget(false);
+    showToast(`Bajet dikemas kini: ${budget.currency} ${val.toLocaleString()}`);
+  };
+
+  const expenseStats = useMemo(() => {
+    const total = expenses.reduce((s, e) => s + e.amount, 0);
+    const remaining = budget.total - total;
+    const pct = budget.total > 0 ? Math.min(100, Math.round((total / budget.total) * 100)) : 0;
+    const byCategory = EXPENSE_CATEGORIES.map(cat => ({
+      ...cat,
+      spent: expenses.filter(e => e.category === cat.id).reduce((s, e) => s + e.amount, 0),
+      count: expenses.filter(e => e.category === cat.id).length
+    })).filter(c => c.spent > 0);
+    return { total, remaining, pct, byCategory };
+  }, [expenses, budget]);
+
+  const filteredExpenses = useMemo(() => {
+    if (expFilter === 'all') return expenses;
+    return expenses.filter(e => e.category === expFilter);
+  }, [expenses, expFilter]);
+
+  const handleExportExcel = () => {
+    const catMap = Object.fromEntries(EXPENSE_CATEGORIES.map(c => [c.id, c.label]));
+    const rows = expenses.map(e => ({
+      Tarikh: e.date,
+      Kategori: catMap[e.category] || e.category,
+      Penerangan: e.description,
+      'Amaun (MYR)': e.amount,
+      Nota: e.notes || ''
+    }));
+    // Summary rows
+    const summaryRows = [
+      {},
+      { Tarikh: '--- RINGKASAN ---' },
+      { Tarikh: 'Jumlah Bajet', 'Amaun (MYR)': budget.total },
+      { Tarikh: 'Jumlah Perbelanjaan', 'Amaun (MYR)': expenseStats.total },
+      { Tarikh: 'Baki', 'Amaun (MYR)': expenseStats.remaining },
+      {},
+      ...expenseStats.byCategory.map(c => ({ Tarikh: c.label, 'Amaun (MYR)': c.spent, Penerangan: `${c.count} transaksi` }))
+    ];
+    const ws = XLSX.utils.json_to_sheet([...rows, ...summaryRows]);
+    ws['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 30 }, { wch: 14 }, { wch: 25 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Perbelanjaan Umrah');
+    XLSX.writeFile(wb, `perbelanjaan_umrah_${new Date().toISOString().slice(0,10)}.xlsx`);
+    showToast('Fail Excel berjaya dimuat turun! 📊');
+  };
+
   // New Itinerary Form State
   const [itDate, setItDate] = useState('2026-10-11');
   const [itTime, setItTime] = useState('09:00');
@@ -828,6 +954,14 @@ export default function App() {
               >
                 Focus Reader
               </button>
+              <button
+                onClick={() => setActiveTab('expenses')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === 'expenses' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Wallet className="w-3.5 h-3.5 shrink-0" /> Perbelanjaan
+              </button>
             </nav>
           )}
 
@@ -910,6 +1044,14 @@ export default function App() {
               }`}
             >
               Timeline
+            </button>
+            <button
+              onClick={() => setActiveTab('expenses')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1 ${
+                activeTab === 'expenses' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
+              }`}
+            >
+              <Wallet className="w-3 h-3" /> Belanja
             </button>
           </div>
         )}
@@ -1949,6 +2091,303 @@ export default function App() {
             ) : (
               <div className="text-center py-12 text-slate-500">Tiada doa untuk dibaca.</div>
             )}
+          </div>
+        )}
+
+        {/* TAB 7: EXPENSES TRACKER */}
+        {activeTab === 'expenses' && (
+          <div className="space-y-6 max-w-5xl mx-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
+              <div className="absolute bottom-0 left-0 -mb-6 -ml-6 w-32 h-32 rounded-full bg-purple-300/20 blur-xl" />
+              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <span className="text-xs font-bold text-violet-200 uppercase tracking-widest">Personal Dashboard</span>
+                  <h1 className="text-2xl font-extrabold mt-1 flex items-center gap-2">
+                    <Wallet className="w-7 h-7 text-violet-200" /> Penjejak Perbelanjaan Umrah
+                  </h1>
+                  <p className="text-violet-200 text-xs mt-1">Urus dan jejak perbelanjaan anda sepanjang perjalanan ke Tanah Suci.</p>
+                </div>
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white/15 hover:bg-white/25 border border-white/30 rounded-2xl text-sm font-bold transition backdrop-blur-sm shadow-lg"
+                >
+                  <Download className="w-4 h-4" /> Export Excel
+                </button>
+              </div>
+            </div>
+
+            {/* Budget + Stats Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Budget Card */}
+              <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm space-y-3 col-span-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
+                      <PieChart className="w-5 h-5 text-violet-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">Bajet Keseluruhan</span>
+                  </div>
+                  <button
+                    onClick={() => { setEditingBudget(!editingBudget); setBudgetInput(budget.total.toString()); }}
+                    className="text-xs font-semibold text-violet-600 hover:text-violet-800 px-2 py-1 rounded-lg hover:bg-violet-50 transition"
+                  >
+                    {editingBudget ? 'Batal' : 'Edit'}
+                  </button>
+                </div>
+                {editingBudget ? (
+                  <form onSubmit={handleSaveBudget} className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">RM</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={budgetInput}
+                        onChange={e => setBudgetInput(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border border-violet-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-violet-200"
+                        autoFocus
+                      />
+                    </div>
+                    <button type="submit" className="px-3 py-2 bg-violet-600 text-white rounded-xl text-xs font-bold">
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </form>
+                ) : (
+                  <div>
+                    <p className="text-2xl font-black text-violet-700">RM {budget.total.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                    <div className="mt-3 space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-slate-500">Digunakan</span>
+                        <span className={expenseStats.pct >= 90 ? 'text-red-600' : expenseStats.pct >= 70 ? 'text-amber-600' : 'text-emerald-600'}>
+                          {expenseStats.pct}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            expenseStats.pct >= 90 ? 'bg-gradient-to-r from-red-500 to-rose-600'
+                            : expenseStats.pct >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                            : 'bg-gradient-to-r from-violet-500 to-purple-600'
+                          }`}
+                          style={{ width: `${expenseStats.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Total Spent */}
+              <div className="bg-white rounded-2xl border border-rose-100 p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Jumlah Dibelanjakan</span>
+                </div>
+                <p className="text-2xl font-black text-rose-600">RM {expenseStats.total.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                <p className="text-xs text-slate-500 mt-1">{expenses.length} rekod perbelanjaan</p>
+              </div>
+
+              {/* Remaining */}
+              <div className={`rounded-2xl p-5 shadow-sm border ${
+                expenseStats.remaining >= 0 ? 'bg-white border-emerald-100' : 'bg-rose-50 border-rose-200'
+              }`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    expenseStats.remaining >= 0 ? 'bg-emerald-100' : 'bg-rose-100'
+                  }`}>
+                    <DollarSign className={`w-5 h-5 ${expenseStats.remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">Baki / Lebihan</span>
+                </div>
+                <p className={`text-2xl font-black ${
+                  expenseStats.remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                }`}>
+                  RM {Math.abs(expenseStats.remaining).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {expenseStats.remaining >= 0 ? 'Masih dalam bajet 🎉' : 'Melebihi bajet ⚠️'}
+                </p>
+              </div>
+            </div>
+
+            {/* Category breakdown */}
+            {expenseStats.byCategory.length > 0 && (
+              <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <PieChart className="w-4 h-4 text-violet-500" /> Pecahan Mengikut Kategori
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {expenseStats.byCategory.map(cat => (
+                    <div key={cat.id} className={`p-3 rounded-xl border ${cat.light} space-y-1`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-base">{cat.icon}</span>
+                        <span className="text-[10px] font-bold opacity-70">{cat.count}x</span>
+                      </div>
+                      <p className="text-[11px] font-semibold leading-tight">{cat.label}</p>
+                      <p className="text-sm font-black">RM {cat.spent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Expense Form */}
+            <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-violet-600" /> Tambah Rekod Perbelanjaan
+              </h3>
+              <form onSubmit={handleAddExpense} className="space-y-4">
+                {/* Category chips */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Kategori</label>
+                  <div className="flex flex-wrap gap-2">
+                    {EXPENSE_CATEGORIES.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setExpForm(prev => ({ ...prev, category: cat.id }))}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+                          expForm.category === cat.id
+                            ? `bg-gradient-to-r ${cat.color} text-white border-transparent shadow-md`
+                            : `${cat.light} hover:opacity-80`
+                        }`}
+                      >
+                        <span>{cat.icon}</span> {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Penerangan</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Sarapan di Hotel Madinah"
+                      value={expForm.description}
+                      onChange={e => setExpForm(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-violet-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Amaun (RM)</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">RM</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={expForm.amount}
+                        onChange={e => setExpForm(prev => ({ ...prev, amount: e.target.value }))}
+                        className="w-full pl-11 pr-4 py-2.5 border border-violet-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Tarikh</label>
+                    <input
+                      type="date"
+                      value={expForm.date}
+                      onChange={e => setExpForm(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-violet-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-200"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Nota (pilihan)</label>
+                    <input
+                      type="text"
+                      placeholder="Nota tambahan..."
+                      value={expForm.notes}
+                      onChange={e => setExpForm(prev => ({ ...prev, notes: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-violet-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-violet-200"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-violet-200"
+                >
+                  <Plus className="w-4 h-4" /> Simpan Perbelanjaan
+                </button>
+              </form>
+            </div>
+
+            {/* Expense List */}
+            <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-violet-500" /> Senarai Perbelanjaan ({filteredExpenses.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={expFilter}
+                    onChange={e => setExpFilter(e.target.value)}
+                    className="px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-xl text-xs font-semibold text-slate-700 outline-none"
+                  >
+                    <option value="all">Semua Kategori</option>
+                    {EXPENSE_CATEGORIES.map(c => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Export Excel
+                  </button>
+                </div>
+              </div>
+
+              {filteredExpenses.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Wallet className="w-12 h-12 mx-auto mb-3 opacity-30 text-violet-300" />
+                  <p className="text-sm font-medium">Belum ada rekod perbelanjaan.</p>
+                  <p className="text-xs mt-1">Tambah perbelanjaan pertama anda di atas.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredExpenses.map(exp => {
+                    const cat = EXPENSE_CATEGORIES.find(c => c.id === exp.category) || EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
+                    return (
+                      <div key={exp.id} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50/60 border border-slate-100 hover:border-violet-200 transition group">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-lg shrink-0 shadow-sm`}>
+                            {cat.icon}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800 truncate">{exp.description}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cat.light}`}>{cat.label}</span>
+                              <span className="text-[10px] text-slate-400">{exp.date}</span>
+                              {exp.notes && <span className="text-[10px] text-slate-400 truncate hidden sm:block">· {exp.notes}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-sm font-black text-rose-600">RM {exp.amount.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</span>
+                          <button
+                            onClick={() => handleDeleteExpense(exp.id)}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 transition opacity-0 group-hover:opacity-100"
+                            title="Padam"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
