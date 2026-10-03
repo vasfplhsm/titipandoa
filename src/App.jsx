@@ -346,17 +346,21 @@ export default function App() {
   
   // ─── Expenses Tracker State ────────────────────────────────────────────────
   const [expenses, setExpenses] = useState([]);
-  const [budget, setBudget] = useState({ total: 5000, currency: 'MYR' });
+  const [budget, setBudget] = useState({ total: 5000, currency: 'MYR', sarWallet: 500 });
   const [expForm, setExpForm] = useState({
     description: '',
     amount: '',
+    currency: 'SAR',
     category: 'food',
     date: new Date().toISOString().slice(0, 10),
     notes: ''
   });
   const [editingBudget, setEditingBudget] = useState(false);
+  const [editingSarWallet, setEditingSarWallet] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
+  const [sarWalletInput, setSarWalletInput] = useState('');
   const [expFilter, setExpFilter] = useState('all');
+  const [expCurrencyFilter, setExpCurrencyFilter] = useState('all');
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -364,22 +368,32 @@ export default function App() {
     const newExp = {
       description: expForm.description.trim(),
       amount: parseFloat(expForm.amount),
+      currency: expForm.currency,
       category: expForm.category,
       date: expForm.date,
       notes: expForm.notes.trim(),
     };
     const { data, error } = await supabase.from('expenses').insert([newExp]).select().single();
-    if (!error && data) {
+    if (error) {
+      console.error('Error inserting expense into Supabase:', error);
+      // Fallback: add locally with temporary ID so user does not lose input
+      const localExp = { ...newExp, id: 'temp-' + Date.now() };
+      setExpenses(prev => [localExp, ...prev]);
+      showToast('⚠️ Gagal simpan ke Supabase! Pastikan table "expenses" telah dicipta.');
+    } else if (data) {
       setExpenses(prev => [data, ...prev]);
+      showToast('Perbelanjaan berjaya ditambah! 💰');
     }
     broadcastSync('add_expense');
     setExpForm(prev => ({ ...prev, description: '', amount: '', notes: '' }));
-    showToast('Perbelanjaan berjaya ditambah! 💰');
   };
 
   const handleDeleteExpense = async (id) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
-    await supabase.from('expenses').delete().eq('id', id);
+    if (!String(id).startsWith('temp-')) {
+      const { error } = await supabase.from('expenses').delete().eq('id', id);
+      if (error) console.error('Error deleting expense:', error);
+    }
     broadcastSync('delete_expense');
     showToast('Rekod perbelanjaan dipadam.');
   };
@@ -393,25 +407,52 @@ export default function App() {
     await supabase.from('app_settings').upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
     broadcastSync('update_budget');
     setEditingBudget(false);
-    showToast(`Bajet dikemas kini: ${budget.currency} ${val.toLocaleString()}`);
+    showToast(`Bajet MYR dikemas kini: RM ${val.toLocaleString()}`);
+  };
+
+  const handleSaveSarWallet = async (e) => {
+    if (e) e.preventDefault();
+    const val = parseFloat(sarWalletInput);
+    if (isNaN(val) || val <= 0) { showToast('Sila masukkan amaun SAR yang sah.'); return; }
+    const newBudget = { ...budget, sarWallet: val };
+    setBudget(newBudget);
+    await supabase.from('app_settings').upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
+    broadcastSync('update_budget');
+    setEditingSarWallet(false);
+    showToast(`Duit tukaran SAR dikemas kini: SAR ${val.toLocaleString()}`);
   };
 
   const expenseStats = useMemo(() => {
-    const total = expenses.reduce((s, e) => s + e.amount, 0);
-    const remaining = budget.total - total;
-    const pct = budget.total > 0 ? Math.min(100, Math.round((total / budget.total) * 100)) : 0;
+    const myrExpenses = expenses.filter(e => !e.currency || e.currency === 'MYR');
+    const sarExpenses = expenses.filter(e => e.currency === 'SAR');
+
+    const myrTotal = myrExpenses.reduce((s, e) => s + e.amount, 0);
+    const sarTotal = sarExpenses.reduce((s, e) => s + e.amount, 0);
+
+    const myrRemaining = budget.total - myrTotal;
+    const sarRemaining = (budget.sarWallet || 0) - sarTotal;
+
+    const myrPct = budget.total > 0 ? Math.min(100, Math.round((myrTotal / budget.total) * 100)) : 0;
+    const sarPct = (budget.sarWallet || 0) > 0 ? Math.min(100, Math.round((sarTotal / (budget.sarWallet || 1)) * 100)) : 0;
+
     const byCategory = EXPENSE_CATEGORIES.map(cat => ({
       ...cat,
-      spent: expenses.filter(e => e.category === cat.id).reduce((s, e) => s + e.amount, 0),
+      myrSpent: myrExpenses.filter(e => e.category === cat.id).reduce((s, e) => s + e.amount, 0),
+      sarSpent: sarExpenses.filter(e => e.category === cat.id).reduce((s, e) => s + e.amount, 0),
       count: expenses.filter(e => e.category === cat.id).length
-    })).filter(c => c.spent > 0);
-    return { total, remaining, pct, byCategory };
+    })).filter(c => c.myrSpent > 0 || c.sarSpent > 0);
+
+    return { myrTotal, sarTotal, myrRemaining, sarRemaining, myrPct, sarPct, byCategory,
+             total: myrTotal, remaining: myrRemaining, pct: myrPct };
   }, [expenses, budget]);
 
   const filteredExpenses = useMemo(() => {
-    if (expFilter === 'all') return expenses;
-    return expenses.filter(e => e.category === expFilter);
-  }, [expenses, expFilter]);
+    return expenses.filter(e => {
+      const currMatch = expCurrencyFilter === 'all' || (e.currency || 'MYR') === expCurrencyFilter;
+      const catMatch = expFilter === 'all' || e.category === expFilter;
+      return currMatch && catMatch;
+    });
+  }, [expenses, expFilter, expCurrencyFilter]);
 
   const handleExportExcel = () => {
     const catMap = Object.fromEntries(EXPENSE_CATEGORIES.map(c => [c.id, c.label]));
@@ -419,21 +460,26 @@ export default function App() {
       Tarikh: e.date,
       Kategori: catMap[e.category] || e.category,
       Penerangan: e.description,
-      'Amaun (MYR)': e.amount,
+      Amaun: e.amount,
+      Mata_Wang: e.currency || 'MYR',
       Nota: e.notes || ''
     }));
     // Summary rows
     const summaryRows = [
       {},
       { Tarikh: '--- RINGKASAN ---' },
-      { Tarikh: 'Jumlah Bajet', 'Amaun (MYR)': budget.total },
-      { Tarikh: 'Jumlah Perbelanjaan', 'Amaun (MYR)': expenseStats.total },
-      { Tarikh: 'Baki', 'Amaun (MYR)': expenseStats.remaining },
+      { Tarikh: 'Bajet MYR', Amaun: budget.total, Mata_Wang: 'MYR' },
+      { Tarikh: 'Dibelanjakan (MYR)', Amaun: expenseStats.myrTotal, Mata_Wang: 'MYR' },
+      { Tarikh: 'Baki MYR', Amaun: expenseStats.myrRemaining, Mata_Wang: 'MYR' },
       {},
-      ...expenseStats.byCategory.map(c => ({ Tarikh: c.label, 'Amaun (MYR)': c.spent, Penerangan: `${c.count} transaksi` }))
+      { Tarikh: 'Duit Tukaran SAR', Amaun: budget.sarWallet || 0, Mata_Wang: 'SAR' },
+      { Tarikh: 'Dibelanjakan (SAR)', Amaun: expenseStats.sarTotal, Mata_Wang: 'SAR' },
+      { Tarikh: 'Baki SAR', Amaun: expenseStats.sarRemaining, Mata_Wang: 'SAR' },
+      {},
+      ...expenseStats.byCategory.map(c => ({ Tarikh: c.label, 'MYR': c.myrSpent || 0, 'SAR': c.sarSpent || 0, Penerangan: `${c.count} transaksi` }))
     ];
     const ws = XLSX.utils.json_to_sheet([...rows, ...summaryRows]);
-    ws['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 30 }, { wch: 14 }, { wch: 25 }];
+    ws['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 25 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Perbelanjaan Umrah');
     XLSX.writeFile(wb, `perbelanjaan_umrah_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -2111,7 +2157,7 @@ export default function App() {
                   <h1 className="text-2xl font-extrabold mt-1 flex items-center gap-2">
                     <Wallet className="w-7 h-7 text-violet-200" /> Penjejak Perbelanjaan Umrah
                   </h1>
-                  <p className="text-violet-200 text-xs mt-1">Urus dan jejak perbelanjaan anda sepanjang perjalanan ke Tanah Suci.</p>
+                  <p className="text-violet-200 text-xs mt-1">Jejak perbelanjaan MYR & SAR anda sepanjang perjalanan ke Tanah Suci.</p>
                 </div>
                 <button
                   onClick={handleExportExcel}
@@ -2122,99 +2168,195 @@ export default function App() {
               </div>
             </div>
 
-            {/* Budget + Stats Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Budget Card */}
-              <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm space-y-3 col-span-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
-                      <PieChart className="w-5 h-5 text-violet-600" />
-                    </div>
-                    <span className="text-sm font-bold text-slate-800">Bajet Keseluruhan</span>
-                  </div>
-                  <button
-                    onClick={() => { setEditingBudget(!editingBudget); setBudgetInput(budget.total.toString()); }}
-                    className="text-xs font-semibold text-violet-600 hover:text-violet-800 px-2 py-1 rounded-lg hover:bg-violet-50 transition"
-                  >
-                    {editingBudget ? 'Batal' : 'Edit'}
-                  </button>
-                </div>
-                {editingBudget ? (
-                  <form onSubmit={handleSaveBudget} className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">RM</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={budgetInput}
-                        onChange={e => setBudgetInput(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-violet-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-violet-200"
-                        autoFocus
-                      />
-                    </div>
-                    <button type="submit" className="px-3 py-2 bg-violet-600 text-white rounded-xl text-xs font-bold">
-                      <Check className="w-4 h-4" />
-                    </button>
-                  </form>
-                ) : (
-                  <div>
-                    <p className="text-2xl font-black text-violet-700">RM {budget.total.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
-                    <div className="mt-3 space-y-1.5">
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-500">Digunakan</span>
-                        <span className={expenseStats.pct >= 90 ? 'text-red-600' : expenseStats.pct >= 70 ? 'text-amber-600' : 'text-emerald-600'}>
-                          {expenseStats.pct}%
-                        </span>
+            {/* ── MYR Budget Section ── */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">🇲🇾 Bajet Ringgit Malaysia (MYR)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* MYR Budget Card */}
+                <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center">
+                        <PieChart className="w-5 h-5 text-violet-600" />
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            expenseStats.pct >= 90 ? 'bg-gradient-to-r from-red-500 to-rose-600'
-                            : expenseStats.pct >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500'
-                            : 'bg-gradient-to-r from-violet-500 to-purple-600'
-                          }`}
-                          style={{ width: `${expenseStats.pct}%` }}
+                      <span className="text-sm font-bold text-slate-800">Bajet Keseluruhan</span>
+                    </div>
+                    <button
+                      onClick={() => { setEditingBudget(!editingBudget); setBudgetInput(budget.total.toString()); }}
+                      className="text-xs font-semibold text-violet-600 hover:text-violet-800 px-2 py-1 rounded-lg hover:bg-violet-50 transition"
+                    >
+                      {editingBudget ? 'Batal' : 'Edit'}
+                    </button>
+                  </div>
+                  {editingBudget ? (
+                    <form onSubmit={handleSaveBudget} className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">RM</span>
+                        <input
+                          type="number" min="0" step="0.01"
+                          value={budgetInput}
+                          onChange={e => setBudgetInput(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 border border-violet-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-violet-200"
+                          autoFocus
                         />
                       </div>
+                      <button type="submit" className="px-3 py-2 bg-violet-600 text-white rounded-xl text-xs font-bold"><Check className="w-4 h-4" /></button>
+                    </form>
+                  ) : (
+                    <div>
+                      <p className="text-2xl font-black text-violet-700">RM {budget.total.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Digunakan</span>
+                          <span className={expenseStats.myrPct >= 90 ? 'text-red-600' : expenseStats.myrPct >= 70 ? 'text-amber-600' : 'text-emerald-600'}>
+                            {expenseStats.myrPct}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              expenseStats.myrPct >= 90 ? 'bg-gradient-to-r from-red-500 to-rose-600'
+                              : expenseStats.myrPct >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                              : 'bg-gradient-to-r from-violet-500 to-purple-600'
+                            }`}
+                            style={{ width: `${expenseStats.myrPct}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Total Spent */}
-              <div className="bg-white rounded-2xl border border-rose-100 p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-rose-600" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">Jumlah Dibelanjakan</span>
+                  )}
                 </div>
-                <p className="text-2xl font-black text-rose-600">RM {expenseStats.total.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs text-slate-500 mt-1">{expenses.length} rekod perbelanjaan</p>
-              </div>
 
-              {/* Remaining */}
-              <div className={`rounded-2xl p-5 shadow-sm border ${
-                expenseStats.remaining >= 0 ? 'bg-white border-emerald-100' : 'bg-rose-50 border-rose-200'
-              }`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                    expenseStats.remaining >= 0 ? 'bg-emerald-100' : 'bg-rose-100'
-                  }`}>
-                    <DollarSign className={`w-5 h-5 ${expenseStats.remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+                {/* MYR Spent */}
+                <div className="bg-white rounded-2xl border border-rose-100 p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Dibelanjakan (MYR)</span>
                   </div>
-                  <span className="text-sm font-bold text-slate-700">Baki / Lebihan</span>
+                  <p className="text-2xl font-black text-rose-600">RM {expenseStats.myrTotal.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-slate-500 mt-1">{expenses.filter(e => !e.currency || e.currency === 'MYR').length} rekod</p>
                 </div>
-                <p className={`text-2xl font-black ${
-                  expenseStats.remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
+
+                {/* MYR Remaining */}
+                <div className={`rounded-2xl p-5 shadow-sm border ${
+                  expenseStats.myrRemaining >= 0 ? 'bg-white border-emerald-100' : 'bg-rose-50 border-rose-200'
                 }`}>
-                  RM {Math.abs(expenseStats.remaining).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  {expenseStats.remaining >= 0 ? 'Masih dalam bajet 🎉' : 'Melebihi bajet ⚠️'}
-                </p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                      expenseStats.myrRemaining >= 0 ? 'bg-emerald-100' : 'bg-rose-100'
+                    }`}>
+                      <DollarSign className={`w-5 h-5 ${expenseStats.myrRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Baki MYR</span>
+                  </div>
+                  <p className={`text-2xl font-black ${
+                    expenseStats.myrRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    RM {Math.abs(expenseStats.myrRemaining).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {expenseStats.myrRemaining >= 0 ? 'Masih dalam bajet 🎉' : 'Melebihi bajet ⚠️'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SAR Wallet Section ── */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500">🇸🇦 Duit Tukaran Saudi Riyal (SAR)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* SAR Wallet Card */}
+                <div className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-lg">💱</div>
+                      <span className="text-sm font-bold text-slate-800">Duit Tukaran</span>
+                    </div>
+                    <button
+                      onClick={() => { setEditingSarWallet(!editingSarWallet); setSarWalletInput((budget.sarWallet || 0).toString()); }}
+                      className="text-xs font-semibold text-amber-600 hover:text-amber-800 px-2 py-1 rounded-lg hover:bg-amber-50 transition"
+                    >
+                      {editingSarWallet ? 'Batal' : 'Edit'}
+                    </button>
+                  </div>
+                  {editingSarWallet ? (
+                    <form onSubmit={handleSaveSarWallet} className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">SAR</span>
+                        <input
+                          type="number" min="0" step="0.01"
+                          value={sarWalletInput}
+                          onChange={e => setSarWalletInput(e.target.value)}
+                          className="w-full pl-12 pr-3 py-2 border border-amber-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-amber-200"
+                          autoFocus
+                        />
+                      </div>
+                      <button type="submit" className="px-3 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold"><Check className="w-4 h-4" /></button>
+                    </form>
+                  ) : (
+                    <div>
+                      <p className="text-2xl font-black text-amber-600">SAR {(budget.sarWallet || 0).toLocaleString('en', { minimumFractionDigits: 2 })}</p>
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-slate-500">Digunakan</span>
+                          <span className={expenseStats.sarPct >= 90 ? 'text-red-600' : expenseStats.sarPct >= 70 ? 'text-amber-600' : 'text-emerald-600'}>
+                            {expenseStats.sarPct}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              expenseStats.sarPct >= 90 ? 'bg-gradient-to-r from-red-500 to-rose-600'
+                              : expenseStats.sarPct >= 70 ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                              : 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                            }`}
+                            style={{ width: `${expenseStats.sarPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* SAR Spent */}
+                <div className="bg-white rounded-2xl border border-amber-100 p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Dibelanjakan (SAR)</span>
+                  </div>
+                  <p className="text-2xl font-black text-amber-600">SAR {expenseStats.sarTotal.toLocaleString('en', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-slate-500 mt-1">{expenses.filter(e => e.currency === 'SAR').length} rekod</p>
+                </div>
+
+                {/* SAR Remaining */}
+                <div className={`rounded-2xl p-5 shadow-sm border ${
+                  expenseStats.sarRemaining >= 0 ? 'bg-white border-emerald-100' : 'bg-rose-50 border-rose-200'
+                }`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                      expenseStats.sarRemaining >= 0 ? 'bg-emerald-100' : 'bg-rose-100'
+                    }`}>
+                      <DollarSign className={`w-5 h-5 ${expenseStats.sarRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">Baki SAR</span>
+                  </div>
+                  <p className={`text-2xl font-black ${
+                    expenseStats.sarRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    SAR {Math.abs(expenseStats.sarRemaining).toLocaleString('en', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {expenseStats.sarRemaining >= 0 ? 'Masih ada baki 🎉' : 'Melebihi duit tukaran ⚠️'}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -2232,7 +2374,8 @@ export default function App() {
                         <span className="text-[10px] font-bold opacity-70">{cat.count}x</span>
                       </div>
                       <p className="text-[11px] font-semibold leading-tight">{cat.label}</p>
-                      <p className="text-sm font-black">RM {cat.spent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                      {cat.myrSpent > 0 && <p className="text-xs font-black text-violet-700">RM {cat.myrSpent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>}
+                      {cat.sarSpent > 0 && <p className="text-xs font-black text-amber-600">SAR {cat.sarSpent.toLocaleString('en', { minimumFractionDigits: 2 })}</p>}
                     </div>
                   ))}
                 </div>
@@ -2278,22 +2421,38 @@ export default function App() {
                       required
                     />
                   </div>
+
+                  {/* Currency + Amount side by side */}
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Amaun (RM)</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">RM</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={expForm.amount}
-                        onChange={e => setExpForm(prev => ({ ...prev, amount: e.target.value }))}
-                        className="w-full pl-11 pr-4 py-2.5 border border-violet-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
-                        required
-                      />
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Mata Wang & Amaun</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={expForm.currency}
+                        onChange={e => setExpForm(prev => ({ ...prev, currency: e.target.value }))}
+                        className={`shrink-0 px-3 py-2.5 border rounded-xl text-sm font-bold outline-none focus:ring-2 transition ${
+                          expForm.currency === 'SAR'
+                            ? 'border-amber-300 bg-amber-50 text-amber-700 focus:ring-amber-200'
+                            : 'border-violet-200 bg-violet-50 text-violet-700 focus:ring-violet-200'
+                        }`}
+                      >
+                        <option value="SAR">🇸🇦 SAR</option>
+                        <option value="MYR">🇲🇾 MYR</option>
+                      </select>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                          {expForm.currency === 'SAR' ? 'SAR' : 'RM'}
+                        </span>
+                        <input
+                          type="number" min="0" step="0.01" placeholder="0.00"
+                          value={expForm.amount}
+                          onChange={e => setExpForm(prev => ({ ...prev, amount: e.target.value }))}
+                          className="w-full pl-12 pr-4 py-2.5 border border-violet-100 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
+
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Tarikh</label>
                     <input
@@ -2318,9 +2477,14 @@ export default function App() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-violet-200"
+                  className={`w-full py-3 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg ${
+                    expForm.currency === 'SAR'
+                      ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-amber-200'
+                      : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-200'
+                  }`}
                 >
-                  <Plus className="w-4 h-4" /> Simpan Perbelanjaan
+                  <Plus className="w-4 h-4" />
+                  Simpan Perbelanjaan {expForm.currency === 'SAR' ? '🇸🇦 SAR' : '🇲🇾 MYR'}
                 </button>
               </form>
             </div>
@@ -2332,6 +2496,22 @@ export default function App() {
                   <FileText className="w-4 h-4 text-violet-500" /> Senarai Perbelanjaan ({filteredExpenses.length})
                 </h3>
                 <div className="flex flex-wrap gap-2">
+                  {/* Currency filter */}
+                  <div className="flex rounded-xl overflow-hidden border border-slate-200 text-xs font-bold">
+                    {['all', 'SAR', 'MYR'].map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setExpCurrencyFilter(c)}
+                        className={`px-3 py-1.5 transition ${
+                          expCurrencyFilter === c
+                            ? c === 'SAR' ? 'bg-amber-500 text-white' : c === 'MYR' ? 'bg-violet-600 text-white' : 'bg-slate-700 text-white'
+                            : 'bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {c === 'all' ? 'Semua' : c === 'SAR' ? '🇸🇦 SAR' : '🇲🇾 MYR'}
+                      </button>
+                    ))}
+                  </div>
                   <select
                     value={expFilter}
                     onChange={e => setExpFilter(e.target.value)}
@@ -2361,15 +2541,23 @@ export default function App() {
                 <div className="space-y-2">
                   {filteredExpenses.map(exp => {
                     const cat = EXPENSE_CATEGORIES.find(c => c.id === exp.category) || EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
+                    const isSar = exp.currency === 'SAR';
                     return (
-                      <div key={exp.id} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50/60 border border-slate-100 hover:border-violet-200 transition group">
+                      <div key={exp.id} className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition group ${
+                        isSar ? 'bg-amber-50/40 border-amber-100 hover:border-amber-300' : 'bg-slate-50/60 border-slate-100 hover:border-violet-200'
+                      }`}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-lg shrink-0 shadow-sm`}>
                             {cat.icon}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-slate-800 truncate">{exp.description}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                isSar ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-violet-100 text-violet-700 border-violet-200'
+                              }`}>
+                                {isSar ? '🇸🇦 SAR' : '🇲🇾 MYR'}
+                              </span>
                               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cat.light}`}>{cat.label}</span>
                               <span className="text-[10px] text-slate-400">{exp.date}</span>
                               {exp.notes && <span className="text-[10px] text-slate-400 truncate hidden sm:block">· {exp.notes}</span>}
@@ -2377,7 +2565,11 @@ export default function App() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-sm font-black text-rose-600">RM {exp.amount.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</span>
+                          <span className={`text-sm font-black ${
+                            isSar ? 'text-amber-600' : 'text-rose-600'
+                          }`}>
+                            {isSar ? 'SAR' : 'RM'} {exp.amount.toLocaleString(isSar ? 'en' : 'ms-MY', { minimumFractionDigits: 2 })}
+                          </span>
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
                             className="p-1.5 text-slate-300 hover:text-rose-500 transition opacity-0 group-hover:opacity-100"
