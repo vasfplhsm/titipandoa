@@ -355,6 +355,8 @@ export default function App() {
     date: new Date().toISOString().slice(0, 10),
     notes: ''
   });
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const expenseFormRef = useRef(null);
   const [editingBudget, setEditingBudget] = useState(false);
   const [editingSarWallet, setEditingSarWallet] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
@@ -362,12 +364,84 @@ export default function App() {
   const [expFilter, setExpFilter] = useState('all');
   const [expCurrencyFilter, setExpCurrencyFilter] = useState('all');
 
-  const handleAddExpense = async (e) => {
+  const handleStartEditExpense = (exp) => {
+    setEditingExpenseId(exp.id);
+    setExpForm({
+      description: exp.description || '',
+      amount: exp.amount ? exp.amount.toString() : '',
+      currency: exp.currency || 'SAR',
+      category: exp.category || 'food',
+      date: exp.date || new Date().toISOString().slice(0, 10),
+      notes: exp.notes || ''
+    });
+    if (expenseFormRef.current) {
+      expenseFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleCancelEditExpense = () => {
+    setEditingExpenseId(null);
+    setExpForm({
+      description: '',
+      amount: '',
+      currency: 'SAR',
+      category: 'food',
+      date: new Date().toISOString().slice(0, 10),
+      notes: ''
+    });
+  };
+
+  const handleSubmitExpense = async (e) => {
     e.preventDefault();
     if (!expForm.description.trim() || !expForm.amount) return;
+    const amountVal = parseFloat(expForm.amount);
+    if (isNaN(amountVal) || amountVal <= 0) {
+      showToast('Sila masukkan amaun yang sah.');
+      return;
+    }
+
+    if (editingExpenseId) {
+      // ─── Kemaskini Rekod Sedia Ada ───
+      const updatedData = {
+        description: expForm.description.trim(),
+        amount: amountVal,
+        currency: expForm.currency,
+        category: expForm.category,
+        date: expForm.date,
+        notes: expForm.notes.trim(),
+      };
+
+      setExpenses(prev => prev.map(exp => exp.id === editingExpenseId ? { ...exp, ...updatedData } : exp));
+
+      if (!String(editingExpenseId).startsWith('temp-')) {
+        const { error } = await supabase.from('expenses').update(updatedData).eq('id', editingExpenseId);
+        if (error) {
+          console.error('Error updating expense in Supabase:', error);
+          showToast('⚠️ Gagal kemaskini di Supabase, disimpan secara tempatan.');
+        } else {
+          showToast('Perbelanjaan berjaya dikemaskini! ✨');
+        }
+      } else {
+        showToast('Perbelanjaan berjaya dikemaskini! ✨');
+      }
+
+      broadcastSync('update_expense');
+      setEditingExpenseId(null);
+      setExpForm({
+        description: '',
+        amount: '',
+        currency: 'SAR',
+        category: 'food',
+        date: new Date().toISOString().slice(0, 10),
+        notes: ''
+      });
+      return;
+    }
+
+    // ─── Tambah Rekod Baru ───
     const newExp = {
       description: expForm.description.trim(),
-      amount: parseFloat(expForm.amount),
+      amount: amountVal,
       currency: expForm.currency,
       category: expForm.category,
       date: expForm.date,
@@ -389,6 +463,9 @@ export default function App() {
   };
 
   const handleDeleteExpense = async (id) => {
+    if (editingExpenseId === id) {
+      handleCancelEditExpense();
+    }
     setExpenses(prev => prev.filter(e => e.id !== id));
     if (!String(id).startsWith('temp-')) {
       const { error } = await supabase.from('expenses').delete().eq('id', id);
@@ -2382,12 +2459,36 @@ export default function App() {
               </div>
             )}
 
-            {/* Add Expense Form */}
-            <div className="bg-white rounded-2xl border border-violet-100 p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-violet-600" /> Tambah Rekod Perbelanjaan
-              </h3>
-              <form onSubmit={handleAddExpense} className="space-y-4">
+            {/* Add / Edit Expense Form */}
+            <div
+              ref={expenseFormRef}
+              className={`bg-white rounded-2xl border p-5 shadow-sm transition-all duration-300 ${
+                editingExpenseId ? 'ring-2 ring-amber-400 border-amber-300 shadow-md bg-amber-50/20' : 'border-violet-100'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  {editingExpenseId ? (
+                    <>
+                      <Edit3 className="w-4 h-4 text-amber-500" /> Kemaskini Rekod Perbelanjaan
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 text-violet-600" /> Tambah Rekod Perbelanjaan
+                    </>
+                  )}
+                </h3>
+                {editingExpenseId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditExpense}
+                    className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 transition flex items-center gap-1.5"
+                  >
+                    <X className="w-3.5 h-3.5" /> Batal Edit
+                  </button>
+                )}
+              </div>
+              <form onSubmit={handleSubmitExpense} className="space-y-4">
                 {/* Category chips */}
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Kategori</label>
@@ -2475,17 +2576,35 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className={`w-full py-3 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg ${
-                    expForm.currency === 'SAR'
-                      ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-amber-200'
-                      : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-200'
-                  }`}
-                >
-                  <Plus className="w-4 h-4" />
-                  Simpan Perbelanjaan {expForm.currency === 'SAR' ? '🇸🇦 SAR' : '🇲🇾 MYR'}
-                </button>
+                {editingExpenseId ? (
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-amber-200"
+                    >
+                      <Check className="w-4 h-4" /> Simpan Perubahan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditExpense}
+                      className="px-5 py-3 border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold rounded-xl transition text-sm"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    className={`w-full py-3 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-lg ${
+                      expForm.currency === 'SAR'
+                        ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-amber-200'
+                        : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-200'
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Simpan Perbelanjaan {expForm.currency === 'SAR' ? '🇸🇦 SAR' : '🇲🇾 MYR'}
+                  </button>
+                )}
               </form>
             </div>
 
@@ -2542,16 +2661,31 @@ export default function App() {
                   {filteredExpenses.map(exp => {
                     const cat = EXPENSE_CATEGORIES.find(c => c.id === exp.category) || EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1];
                     const isSar = exp.currency === 'SAR';
+                    const isCurrentlyEditing = editingExpenseId === exp.id;
                     return (
-                      <div key={exp.id} className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition group ${
-                        isSar ? 'bg-amber-50/40 border-amber-100 hover:border-amber-300' : 'bg-slate-50/60 border-slate-100 hover:border-violet-200'
-                      }`}>
+                      <div
+                        key={exp.id}
+                        className={`flex items-center justify-between gap-3 p-4 rounded-xl border transition group ${
+                          isCurrentlyEditing
+                            ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/50 shadow-sm'
+                            : isSar
+                            ? 'bg-amber-50/40 border-amber-100 hover:border-amber-300'
+                            : 'bg-slate-50/60 border-slate-100 hover:border-violet-200'
+                        }`}
+                      >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-lg shrink-0 shadow-sm`}>
                             {cat.icon}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-bold text-slate-800 truncate">{exp.description}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-slate-800 truncate">{exp.description}</p>
+                              {isCurrentlyEditing && (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0 animate-pulse border border-amber-200">
+                                  Sedang Diedit
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                                 isSar ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-violet-100 text-violet-700 border-violet-200'
@@ -2564,19 +2698,32 @@ export default function App() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                           <span className={`text-sm font-black ${
                             isSar ? 'text-amber-600' : 'text-rose-600'
                           }`}>
                             {isSar ? 'SAR' : 'RM'} {exp.amount.toLocaleString(isSar ? 'en' : 'ms-MY', { minimumFractionDigits: 2 })}
                           </span>
-                          <button
-                            onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1.5 text-slate-300 hover:text-rose-500 transition opacity-0 group-hover:opacity-100"
-                            title="Padam"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleStartEditExpense(exp)}
+                              className={`p-1.5 rounded-lg transition ${
+                                isCurrentlyEditing
+                                  ? 'text-amber-600 bg-amber-100'
+                                  : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                              }`}
+                              title="Edit Rekod"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpense(exp.id)}
+                              className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                              title="Padam"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
