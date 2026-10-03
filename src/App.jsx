@@ -345,18 +345,8 @@ export default function App() {
   const [itinerary, setItinerary] = useState([]);
   
   // ─── Expenses Tracker State ────────────────────────────────────────────────
-  const [expenses, setExpenses] = useState(() => {
-    try {
-      const saved = localStorage.getItem('titipandoa_expenses');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-  const [budget, setBudget] = useState(() => {
-    try {
-      const saved = localStorage.getItem('titipandoa_budget');
-      return saved ? JSON.parse(saved) : { total: 5000, currency: 'MYR' };
-    } catch { return { total: 5000, currency: 'MYR' }; }
-  });
+  const [expenses, setExpenses] = useState([]);
+  const [budget, setBudget] = useState({ total: 5000, currency: 'MYR' });
   const [expForm, setExpForm] = useState({
     description: '',
     amount: '',
@@ -368,41 +358,40 @@ export default function App() {
   const [budgetInput, setBudgetInput] = useState('');
   const [expFilter, setExpFilter] = useState('all');
 
-  // Persist expenses & budget to localStorage
-  useEffect(() => {
-    localStorage.setItem('titipandoa_expenses', JSON.stringify(expenses));
-  }, [expenses]);
-  useEffect(() => {
-    localStorage.setItem('titipandoa_budget', JSON.stringify(budget));
-  }, [budget]);
-
-  const handleAddExpense = (e) => {
+  const handleAddExpense = async (e) => {
     e.preventDefault();
     if (!expForm.description.trim() || !expForm.amount) return;
     const newExp = {
-      id: `exp-${Date.now()}`,
       description: expForm.description.trim(),
       amount: parseFloat(expForm.amount),
       category: expForm.category,
       date: expForm.date,
       notes: expForm.notes.trim(),
-      created_at: new Date().toISOString()
     };
-    setExpenses(prev => [newExp, ...prev]);
+    const { data, error } = await supabase.from('expenses').insert([newExp]).select().single();
+    if (!error && data) {
+      setExpenses(prev => [data, ...prev]);
+    }
+    broadcastSync('add_expense');
     setExpForm(prev => ({ ...prev, description: '', amount: '', notes: '' }));
     showToast('Perbelanjaan berjaya ditambah! 💰');
   };
 
-  const handleDeleteExpense = (id) => {
+  const handleDeleteExpense = async (id) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
+    await supabase.from('expenses').delete().eq('id', id);
+    broadcastSync('delete_expense');
     showToast('Rekod perbelanjaan dipadam.');
   };
 
-  const handleSaveBudget = (e) => {
+  const handleSaveBudget = async (e) => {
     if (e) e.preventDefault();
     const val = parseFloat(budgetInput);
     if (isNaN(val) || val <= 0) { showToast('Sila masukkan amaun bajet yang sah.'); return; }
-    setBudget(prev => ({ ...prev, total: val }));
+    const newBudget = { ...budget, total: val };
+    setBudget(newBudget);
+    await supabase.from('app_settings').upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
+    broadcastSync('update_budget');
     setEditingBudget(false);
     showToast(`Bajet dikemas kini: ${budget.currency} ${val.toLocaleString()}`);
   };
@@ -482,12 +471,14 @@ export default function App() {
     if (!silent) setIsLoading(true);
 
     try {
-      const [doasRes, checklistRes, flightsRes, itineraryRes, seededRes] = await Promise.all([
+      const [doasRes, checklistRes, flightsRes, itineraryRes, seededRes, expensesRes, budgetRes] = await Promise.all([
         supabase.from('doas').select('*').order('created_at', { ascending: false }),
         supabase.from('checklist').select('*').order('id', { ascending: true }),
         supabase.from('app_settings').select('value').eq('key', 'flights').single(),
         supabase.from('itinerary').select('*').order('date', { ascending: true }).order('time', { ascending: true }),
         supabase.from('app_settings').select('key').in('key', ['seeded_doas', 'seeded_checklist', 'seeded_itinerary']),
+        supabase.from('expenses').select('*').order('created_at', { ascending: false }),
+        supabase.from('app_settings').select('value').eq('key', 'budget').single(),
       ]);
 
       // Default sample data is inserted only ONCE per table. After that, an empty
@@ -528,6 +519,16 @@ export default function App() {
       }
 
       await syncTable(itineraryRes, 'seeded_itinerary', 'itinerary', INITIAL_ITINERARY, setItinerary);
+
+      // Load expenses
+      if (expensesRes.data) {
+        setExpenses(prev => JSON.stringify(prev) === JSON.stringify(expensesRes.data) ? prev : expensesRes.data);
+      }
+
+      // Load budget from app_settings
+      if (budgetRes.data && budgetRes.data.value) {
+        setBudget(prev => JSON.stringify(prev) === JSON.stringify(budgetRes.data.value) ? prev : budgetRes.data.value);
+      }
     } catch (err) {
       console.error('Error loading data from Supabase:', err);
     } finally {
@@ -559,6 +560,9 @@ export default function App() {
         loadAllData(true);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'itinerary' }, () => {
+        loadAllData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
         loadAllData(true);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, () => {
