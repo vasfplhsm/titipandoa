@@ -140,8 +140,8 @@ const INITIAL_CHECKLIST = [
 
 const INITIAL_FLIGHTS = {
   departure: {
-    airline: 'Malaysia Airlines (MH8024)',
-    flightNo: 'MH8024',
+    airline: 'Saudia (SV 834)',
+    flightNo: 'SV 834',
     fromCode: 'KUL (KLIA)',
     toCode: 'JED (Jeddah)',
     date: '2026-10-10',
@@ -151,8 +151,8 @@ const INITIAL_FLIGHTS = {
     notes: 'Kumpul di KLIA Kaunter H 4 jam sebelum berlepas.'
   },
   return: {
-    airline: 'Malaysia Airlines (MH8025)',
-    flightNo: 'MH8025',
+    airline: 'Saudia (SV 835)',
+    flightNo: 'SV 835',
     fromCode: 'MED (Madinah)',
     toCode: 'KUL (KLIA)',
     date: '2026-10-22',
@@ -1199,7 +1199,7 @@ export default function App() {
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-400/20 border border-pink-300/30 text-pink-200 text-xs font-medium mb-2">
-                    <Sparkles className="w-3.5 h-3.5 text-pink-300" /> Bakal Dhuyufullah (Tetamu Allah)
+                    <Sparkles className="w-3.5 h-3.5 text-pink-300" /> Bakal Dhuyufurrahman (Tetamu Allah)
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                     Titipan Doa buat {pilgrimName}
@@ -1828,6 +1828,13 @@ export default function App() {
                       onChange={(e) => setFlights({ ...flights, departure: { ...flights.departure, airline: e.target.value } })}
                       className="w-full p-2 bg-white rounded-lg outline-none"
                     />
+                    <input
+                      type="text"
+                      placeholder="No. Penerbangan (e.g. SV 834)"
+                      value={flights.departure.flightNo}
+                      onChange={(e) => setFlights({ ...flights, departure: { ...flights.departure, flightNo: e.target.value } })}
+                      className="w-full p-2 bg-white rounded-lg outline-none"
+                    />
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="text"
@@ -1911,6 +1918,13 @@ export default function App() {
                       placeholder="Syarikat Penerbangan"
                       value={flights.return.airline}
                       onChange={(e) => setFlights({ ...flights, return: { ...flights.return, airline: e.target.value } })}
+                      className="w-full p-2 bg-white rounded-lg outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="No. Penerbangan (e.g. SV 835)"
+                      value={flights.return.flightNo}
+                      onChange={(e) => setFlights({ ...flights, return: { ...flights.return, flightNo: e.target.value } })}
                       className="w-full p-2 bg-white rounded-lg outline-none"
                     />
                     <div className="grid grid-cols-2 gap-2">
