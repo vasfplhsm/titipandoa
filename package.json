@@ -9,7 +9,9 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node scripts/verify-library.mjs && node src/library/model.test.js && node src/tasbih/model.test.js && node src/offline/db.test.js && node scripts/test-native-content.mjs",
+    "native:content": "node scripts/export-native-content.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -26,6 +28,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "fake-indexeddb": "6.2.4",
     "gh-pages": "^6.3.0",
     "oxlint": "^1.81.0",
     "vite": "^8.3.0"

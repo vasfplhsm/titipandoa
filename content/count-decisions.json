@@ -1,0 +1,62 @@
+{
+  "quran-112-1-4": {
+    "count": 3,
+    "reference": "Sunan Abi Dawud 5082",
+    "proof_key": "abudawud-5082",
+    "reviewed_at": "2026-10-31"
+  },
+  "quran-113-1-5": {
+    "count": 3,
+    "reference": "Sunan Abi Dawud 5082",
+    "proof_key": "abudawud-5082",
+    "reviewed_at": "2026-10-31"
+  },
+  "quran-114-1-6": {
+    "count": 3,
+    "reference": "Sunan Abi Dawud 5082",
+    "proof_key": "abudawud-5082",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-pagi-luas": {
+    "count": 3,
+    "reference": "Sahih Muslim 2726a",
+    "proof_key": "muslim-2726",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-tasbih-pagi": {
+    "count": 100,
+    "reference": "Sahih Muslim 2692",
+    "proof_key": "muslim-2692",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-istighfar": {
+    "count": 3,
+    "reference": "Sahih Muslim 591",
+    "proof_key": "muslim-591",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-tahlil-solat": {
+    "count": 1,
+    "reference": "Sahih Muslim 597a",
+    "proof_key": "muslim-597",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-tasbih": {
+    "count": 33,
+    "reference": "Sahih Muslim 597a",
+    "proof_key": "muslim-597",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-tahmid": {
+    "count": 33,
+    "reference": "Sahih Muslim 597a",
+    "proof_key": "muslim-597",
+    "reviewed_at": "2026-10-31"
+  },
+  "h-takbir": {
+    "count": 33,
+    "reference": "Sahih Muslim 597a",
+    "proof_key": "muslim-597",
+    "reviewed_at": "2026-10-31"
+  }
+}

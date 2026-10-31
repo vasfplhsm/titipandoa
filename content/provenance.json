@@ -1,0 +1,25 @@
+{
+  "checked_on": "2026-10-31",
+  "sources": {
+    "quran.json": {
+      "sha256": "d8a8adff387f60ce3ff7dbe3238dd9b27120bfe29d8fcb07ad2e89cad37cefd4",
+      "bytes": 1466095
+    },
+    "muslim.json": {
+      "sha256": "194073b24090c5368e4d14a3f55c9e0ef144c7437bd7e5aa83aa4d2bc54a8ea0",
+      "bytes": 8685140
+    },
+    "bukhari.json": {
+      "sha256": "e34a3402889ca378871da3c5984b7875c680920e93f1c8738ac7afe502179562",
+      "bytes": 9770083
+    },
+    "abudawud.json": {
+      "sha256": "216139c5f40a8147e700d62ffa3b5b2fe45d0e034f86941a193c598c10056189",
+      "bytes": 7345422
+    }
+  },
+  "quran_origin": "https://raw.githubusercontent.com/risan/quran-json/v3.1.2/dist/quran.json",
+  "hadith_origin_template": "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/ara-{book}.json",
+  "upstream_hadith_references": "https://github.com/fawazahmed0/hadith-api/blob/1/References.md",
+  "note": "Source sites are linked per entry. Text comparison used the attributed downloaded mirrors; no claim of direct retrieval from Quran.com/Sunnah.com or a new scholarly grading is made. Full selected source records and hashes are retained in source-excerpts.json."
+}

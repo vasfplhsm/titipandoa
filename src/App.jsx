@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from './supabaseClient';
-import * as XLSX from 'xlsx';
+import Tasbih from './tasbih/Tasbih';
+import SiteHeader from './components/SiteHeader';
+import Home from './components/Home';
+import { About } from './components/DoaCollection';
+import DoaLibrary from './library/DoaLibrary';
+import './design.css';
+import { BottomNavigation, FeatureHub } from './mobile/Navigation';
+import Dashboard from './mobile/Dashboard';
+import OfflinePanel from './offline/OfflinePanel';
+import OfflineChrome from './offline/Chrome';
+import { flushPersistence } from './offline/persistence.js';
+import './mobile/mobile.css';
+import { get, put, remove, flushDatabase } from './offline/db.js';
+import { queueDoa, localPatch, synchronize, cachePrivate, overlayPending, startSyncTriggers, pendingOperations, syncIsActive, retryOperation } from './offline/sync.js';
+import { readPersisted, savePersisted } from './offline/persistence.js';
 import { 
   Heart, 
   Send, 
@@ -11,17 +25,12 @@ import {
   Copy, 
   Eye, 
   BookOpen, 
-  Moon, 
-  Sun, 
-  Flame, 
-  Filter, 
   Bookmark, 
   Search, 
   ChevronLeft, 
   ChevronRight,   
   HelpCircle, 
   Check, 
-  RotateCcw,
   Trash2,
   Lock,
   Unlock,
@@ -29,8 +38,6 @@ import {
   Plus,
   Flower2,
   Crown,
-  CheckSquare,
-  Square,
   Calendar,
   Plane,
   Clock,
@@ -39,7 +46,6 @@ import {
   Edit3,
   X,
   Compass,
-  ArrowRight,
   FileText,
   DollarSign,
   TrendingUp,
@@ -48,58 +54,6 @@ import {
   Wallet
 } from 'lucide-react';
 
-const INITIAL_DOAS = [
-  {
-    id: 'doa-1',
-    sender_name: 'Ahmad & Family',
-    category: 'Kesihatan',
-    message: 'Semoga diberikan kesihatan yang berpanjangan, kesempurnaan tubuh badan dan kemudahan sepanjang menunaikan ibadah Umrah di Tanah Suci. Amin.',
-    is_read: true,
-    is_bookmarked: true,
-    amin_count: 14,
-    created_at: '2026-09-24T08:30:00Z'
-  },
-  {
-    id: 'doa-2',
-    sender_name: 'Siti Nurhaliza',
-    category: 'Rezeki',
-    message: 'Moga dipermudahkan segala urusan rezeki halal yang berkat, dikurniakan keberkatan umur dan dikurniakan rezeki dapat kembali lagi ke Baitullah.',
-    is_read: false,
-    is_bookmarked: true,
-    amin_count: 8,
-    created_at: '2026-09-25T11:15:00Z'
-  },
-  {
-    id: 'doa-3',
-    sender_name: 'Ustaz Ridzuan',
-    category: 'Ampunan',
-    message: 'Semoga dikurniakan keampunan yang hakiki (Taubat Nasuha), diampunkan dosa-dosa lalu dan dikurniakan tempat di Syurga-Nya kelak.',
-    is_read: false,
-    is_bookmarked: false,
-    amin_count: 22,
-    created_at: '2026-09-25T14:45:00Z'
-  },
-  {
-    id: 'doa-4',
-    sender_name: 'Farah & Cousins',
-    category: 'Zuriat',
-    message: 'Mohon doakan kami dari depan Kaabah agar dikurniakan zuriat yang soleh dan solehah yang menyejukkan mata memandang.',
-    is_read: true,
-    is_bookmarked: false,
-    amin_count: 5,
-    created_at: '2026-09-26T09:00:00Z'
-  },
-  {
-    id: 'doa-5',
-    sender_name: 'Mak Long Khadijah',
-    category: 'Umum',
-    message: 'Selamat jalan buat Syahidah. Moga selamat pergi dan balik, mendapat Umrah yang mabrurah dan sentiasa dalam pelindungan Allah SWT.',
-    is_read: false,
-    is_bookmarked: false,
-    amin_count: 31,
-    created_at: '2026-09-26T15:20:00Z'
-  }
-];
 
 const INTRO_NOTE = [
   "Assalamualaikum w.b.t.",
@@ -125,86 +79,12 @@ const CHECKLIST_CATEGORIES = [
   'Lain-lain',
 ];
 
-const INITIAL_CHECKLIST = [
-  { id: 'c-1', category: 'Dokumen & Kewangan', text: 'Pasport Antarabangsa (sahlilaku 6 bulan+)', completed: true },
-  { id: 'c-2', category: 'Dokumen & Kewangan', text: 'Buku Suntikan Meningitis & Kad Vaksin', completed: true },
-  { id: 'c-3', category: 'Dokumen & Kewangan', text: 'Duit Saudi Riyal (SAR) & Kad Debit Aktif Overseas', completed: false },
-  { id: 'c-4', category: 'Ibadah & Kelengkapan Ihram', text: 'Baju Kurung / Abaya Longgar & Tudung Labuh (3-4 pasang)', completed: true },
-  { id: 'c-5', category: 'Ibadah & Kelengkapan Ihram', text: 'Stok Stoking Tebal & Kasut Tawaf Mesra Masjid', completed: true },
-  { id: 'c-6', category: 'Ibadah & Kelengkapan Ihram', text: 'Buku Doa Pocket & Unscented Toiletries (Sabun Tanpa Wangian)', completed: false },
-  { id: 'c-7', category: 'Ubat-ubatan & Kesihatan', text: 'Panadol, Ubat Batuk, Lozenge Tekak & Multivitamin', completed: true },
-  { id: 'c-8', category: 'Ubat-ubatan & Kesihatan', text: 'Vaseline / Pelembap Bibir & Sunscreen Unscented', completed: false },
-  { id: 'c-9', category: 'Pakaian & Keperluan Harian', text: 'Universal Travel Adapter & Powerbank 20,000mAh', completed: true },
-  { id: 'c-10', category: 'Pakaian & Keperluan Harian', text: 'Botol Spray Semburan Wuduk Pocket', completed: false }
-];
 
 const INITIAL_FLIGHTS = {
-  departure: {
-    airline: 'Saudia (SV 834)',
-    flightNo: 'SV 834',
-    fromCode: 'KUL (KLIA)',
-    toCode: 'JED (Jeddah)',
-    date: '2026-10-10',
-    depTime: '14:30',
-    arrTime: '18:45',
-    gate: 'C12',
-    notes: 'Kumpul di KLIA Kaunter H 4 jam sebelum berlepas.'
-  },
-  return: {
-    airline: 'Saudia (SV 835)',
-    flightNo: 'SV 835',
-    fromCode: 'MED (Madinah)',
-    toCode: 'KUL (KLIA)',
-    date: '2026-10-22',
-    depTime: '21:15',
-    arrTime: '10:30',
-    gate: 'G04',
-    notes: 'Timbang beg di hotel Madinah jam 12:00 tengah hari.'
-  }
+ departure: {airline:'',flightNo:'',fromCode:'',toCode:'',date:'',depTime:'',arrTime:'',gate:'',notes:''},
+ return: {airline:'',flightNo:'',fromCode:'',toCode:'',date:'',depTime:'',arrTime:'',gate:'',notes:''}
 };
 
-const INITIAL_ITINERARY = [
-  {
-    id: 'it-1',
-    date: '2026-10-10',
-    time: '14:30',
-    location: 'KLIA (KUL)',
-    activity: 'Penerbangan ke Jeddah & Niat Ihram di Miqat Qarnul Manazil (dalam pesawat)',
-    category: 'Perjalanan'
-  },
-  {
-    id: 'it-2',
-    date: '2026-10-10',
-    time: '21:30',
-    location: 'Makkah Al-Mukarramah',
-    activity: 'Check-in Hotel Makkah & Menunaikan Umrah Pertama (Tawaf, Sa\'i & Tahallul)',
-    category: 'Ibadah'
-  },
-  {
-    id: 'it-3',
-    date: '2026-10-12',
-    time: '08:00',
-    location: 'Ziarah Makkah',
-    activity: 'Ziarah Luar Makkah (Jabal Thawr, Padang Arafah, Jabal Rahmah, Mina & Ja\'ranah)',
-    category: 'Ziarah'
-  },
-  {
-    id: 'it-4',
-    date: '2026-10-16',
-    time: '10:00',
-    location: 'Perjalanan ke Madinah',
-    activity: 'Tawaf Wada\' di Makkah & Naik Bas Ekspres ke Madinah Al-Munawwarah',
-    category: 'Perjalanan'
-  },
-  {
-    id: 'it-5',
-    date: '2026-10-18',
-    time: '14:00',
-    location: 'Masjid Nabawi',
-    activity: 'Ziarah Raudah (Raudhah) Wanita & Salam Rasulullah SAW',
-    category: 'Ibadah'
-  }
-];
 
 const DOA_CATEGORIES = ['Kesihatan', 'Rezeki', 'Ampunan', 'Zuriat', 'Jodoh', 'Keluarga', 'Umum'];
 
@@ -260,17 +140,169 @@ const CONTOH_DOA_BY_CATEGORY = {
 };
 
 
+function libraryRoute() {
+  const hash = window.location.hash.slice(1);
+  if (hash.startsWith('doa/')) return { entryId: hash.slice(4), guideId: null, active: true };
+  if (hash.startsWith('panduan/')) return { entryId: null, guideId: hash.slice(8), active: true };
+  return { entryId: null, guideId: null, active: hash === 'collection' };
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('submission'); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'expenses'
+  const [activeTab, setActiveTab] = useState(() =>
+    libraryRoute().active ? 'collection' : 'home',
+  ); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'expenses'
+  const [tasbihFocus, setTasbihFocus] = useState(false);
+  const [readingFocus, setReadingFocus] = useState(false);
+  const [connected, setConnected] = useState(navigator.onLine);
+  useEffect(() => {
+    const changed = () => setConnected(navigator.onLine);
+    window.addEventListener('online', changed);
+    window.addEventListener('offline', changed);
+    return () => {
+      window.removeEventListener('online', changed);
+      window.removeEventListener('offline', changed);
+    };
+  }, []);
+  const [smallScreen, setSmallScreen] = useState(
+    () => window.matchMedia('(max-width:700px)').matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia('(max-width:700px)');
+    const changed = () => setSmallScreen(media.matches);
+    media.addEventListener('change', changed);
+    const keyboard = () =>
+      document.documentElement.classList.toggle(
+        'pwa-keyboard-open',
+        !!window.visualViewport &&
+          window.innerHeight - window.visualViewport.height > 150,
+      );
+    window.visualViewport?.addEventListener('resize', keyboard);
+    return () => {
+      media.removeEventListener('change', changed);
+      window.visualViewport?.removeEventListener('resize', keyboard);
+    };
+  }, []);
+  const openOwner = () => {
+    if (isOwner) navigate('dashboard');
+    else {
+      setPinError('');
+      setPinInput('');
+      setShowPinModal(true);
+    }
+  };
+  async function saveBeforeUpdate() {
+    await flushDatabase();
+    await flushPersistence();
+    if (syncIsActive() || (await pendingOperations()).length)
+      throw new Error('Selesaikan perubahan tertunda sebelum mengemas kini.');
+    if (
+      editingBudget ||
+      editingSarWallet ||
+      editingChecklistId ||
+      isEditingFlights ||
+      itActivity ||
+      newChecklistItem ||
+      expForm.description ||
+      expForm.amount ||
+      expForm.notes
+    )
+      throw new Error('Selesaikan suntingan aktif sebelum mengemas kini.');
+    if ((senderName || message) && !isSubmitted) {
+      if (
+        !window.confirm('Simpan draf doa pada peranti sebelum mengemas kini?')
+      )
+        throw new Error(
+          'Kemas kini dibatalkan; draf anda dikekalkan pada halaman.',
+        );
+      const existing = await get('drafts', 'doa-submission');
+      await put('drafts', {
+        ...existing,
+        id: 'doa-submission',
+        value: { senderName, message, category },
+        updatedAt: new Date().getTime(),
+      });
+    }
+  }
+
+  const [readingRoute, setReadingRoute] = useState(libraryRoute);
+  const [libraryVisited, setLibraryVisited] = useState(
+    () => libraryRoute().active,
+  );
+  const [tasbihRequest, setTasbihRequest] = useState(null);
+  const tasbihRequestId = useRef(0);
+  useEffect(() => {
+    function syncRoute() {
+      const route = libraryRoute();
+      setReadingRoute(route);
+      if (route.active) {
+        setActiveTab('collection');
+        setLibraryVisited(true);
+      }
+      setReadingFocus(false);
+    }
+    window.addEventListener('hashchange', syncRoute);
+    return () => window.removeEventListener('hashchange', syncRoute);
+  }, []);
+  function openLibraryEntry(id) {
+    setLibraryVisited(true);
+    window.location.assign(id ? `#doa/${id}` : '#collection');
+    setReadingFocus(false);
+    setReadingRoute({ entryId: id, guideId: null, active: true });
+    setActiveTab('collection');
+    window.scrollTo(0, 0);
+  }
+  function openLibraryGuide(id) {
+    setLibraryVisited(true);
+    window.location.assign(`#panduan/${id}`);
+    setReadingRoute({ entryId: null, guideId: id, active: true });
+    setActiveTab('collection');
+    window.scrollTo(0, 0);
+  }
+  function openTasbihEntry(entry) {
+    setTasbihRequest({ entry, nonce: ++tasbihRequestId.current });
+    navigate('tasbih');
+  }
+  const [siteTheme, setSiteTheme] = useState(() => {
+    try {
+      return readPersisted('titipandoa.theme') === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+  function toggleSiteTheme() {
+    const next = siteTheme === 'dark' ? 'light' : 'dark';
+    setSiteTheme(next);
+    try {
+      savePersisted('titipandoa.theme', next);
+    } catch {
+      /* Theme remains available in memory. */
+    }
+  }
+  function navigate(tab) {
+    setReadingFocus(false);
+    if (tab === 'collection') {
+      openLibraryEntry(null);
+      return;
+    }
+    if (libraryRoute().active)
+      history.pushState(
+        null,
+        '',
+        window.location.pathname + window.location.search,
+      );
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
   const [doas, setDoas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [pilgrimName, setPilgrimName] = useState('Syahidah Zulkafli');
-  const [pilgrimSlug, setPilgrimSlug] = useState('syahidahzulkafli');
+  const [pilgrimName] = useState('Syahidah Zulkafli');
   
   // Access Control: Owner (Syahidah) vs Public Visitor
   const [isOwner, setIsOwner] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const stored = localStorage.getItem('titipandoa_owner_authenticated');
+    let stored = null;
+    try { stored = localStorage.getItem('titipandoa_owner_authenticated'); } catch { /* Private storage may be unavailable. */ }
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin') === 'true' || window.location.hash === '#owner') {
       return true;
@@ -280,7 +312,7 @@ export default function App() {
 
   const [ownerPin, setOwnerPin] = useState(() => {
     if (typeof window === 'undefined') return '1234';
-    return localStorage.getItem('titipandoa_owner_pin') || '1234';
+    try { return localStorage.getItem('titipandoa_owner_pin') || '1234'; } catch { return '1234'; }
   });
 
   const [showPinModal, setShowPinModal] = useState(false);
@@ -289,9 +321,9 @@ export default function App() {
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
 
-  // Guard: If not owner, lock activeTab strictly to 'submission'
+  // Public visitors can submit doa and use their private tasbih.
   useEffect(() => {
-    if (!isOwner && activeTab !== 'submission') {
+    if (!isOwner && !['home', 'submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab)) {
       setActiveTab('submission');
     }
   }, [isOwner, activeTab]);
@@ -302,6 +334,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
 
   // Jump to the top once the form has actually rendered (the page gets shorter
   // when the intro card is replaced, which cancels a smooth scroll on mobile)
@@ -346,7 +379,7 @@ export default function App() {
   
   // ─── Expenses Tracker State ────────────────────────────────────────────────
   const [expenses, setExpenses] = useState([]);
-  const [budget, setBudget] = useState({ total: 5000, currency: 'MYR', sarWallet: 500 });
+  const [budget, setBudget] = useState({ total: 0, currency: 'MYR', sarWallet: 0 });
   const [expForm, setExpForm] = useState({
     description: '',
     amount: '',
@@ -391,109 +424,127 @@ export default function App() {
     });
   };
 
-  const handleSubmitExpense = async (e) => {
-    e.preventDefault();
-    if (!expForm.description.trim() || !expForm.amount) return;
-    const amountVal = parseFloat(expForm.amount);
-    if (isNaN(amountVal) || amountVal <= 0) {
-      showToast('Sila masukkan amaun yang sah.');
+  const handleSubmitExpense = async (event) => {
+    event.preventDefault();
+    if (!navigator.onLine || !supabase) {
+      showToast(
+        'Perbelanjaan memerlukan sambungan dalam talian. Draf dikekalkan.',
+      );
       return;
     }
-
-    if (editingExpenseId) {
-      // ─── Kemaskini Rekod Sedia Ada ───
-      const updatedData = {
-        description: expForm.description.trim(),
-        amount: amountVal,
-        currency: expForm.currency,
-        category: expForm.category,
-        date: expForm.date,
-        notes: expForm.notes.trim(),
-      };
-
-      setExpenses(prev => prev.map(exp => exp.id === editingExpenseId ? { ...exp, ...updatedData } : exp));
-
-      if (!String(editingExpenseId).startsWith('temp-')) {
-        const { error } = await supabase.from('expenses').update(updatedData).eq('id', editingExpenseId);
-        if (error) {
-          console.error('Error updating expense in Supabase:', error);
-          showToast('⚠️ Gagal kemaskini di Supabase, disimpan secara tempatan.');
-        } else {
-          showToast('Perbelanjaan berjaya dikemaskini! ✨');
-        }
-      } else {
-        showToast('Perbelanjaan berjaya dikemaskini! ✨');
-      }
-
-      broadcastSync('update_expense');
-      setEditingExpenseId(null);
-      setExpForm({
-        description: '',
-        amount: '',
-        currency: 'SAR',
-        category: 'food',
-        date: new Date().toISOString().slice(0, 10),
-        notes: ''
-      });
+    const amount = Number(expForm.amount);
+    if (
+      !expForm.description.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      showToast('Sila isi butiran dan amaun yang sah.');
       return;
     }
-
-    // ─── Tambah Rekod Baru ───
-    const newExp = {
+    const payload = {
       description: expForm.description.trim(),
-      amount: amountVal,
+      amount,
       currency: expForm.currency,
       category: expForm.category,
       date: expForm.date,
       notes: expForm.notes.trim(),
     };
-    const { data, error } = await supabase.from('expenses').insert([newExp]).select().single();
-    if (error) {
-      console.error('Error inserting expense into Supabase:', error);
-      // Fallback: add locally with temporary ID so user does not lose input
-      const localExp = { ...newExp, id: 'temp-' + Date.now() };
-      setExpenses(prev => [localExp, ...prev]);
-      showToast('⚠️ Gagal simpan ke Supabase! Pastikan table "expenses" telah dicipta.');
-    } else if (data) {
-      setExpenses(prev => [data, ...prev]);
-      showToast('Perbelanjaan berjaya ditambah! 💰');
+    const result =
+      editingExpenseId && !String(editingExpenseId).startsWith('temp-')
+        ? await supabase
+            .from('expenses')
+            .update(payload)
+            .eq('id', editingExpenseId)
+            .select()
+            .single()
+        : await supabase.from('expenses').insert([payload]).select().single();
+    if (result.error || !result.data) {
+      showToast('Perbelanjaan belum disahkan server. Draf dikekalkan.');
+      return;
     }
-    broadcastSync('add_expense');
-    setExpForm(prev => ({ ...prev, description: '', amount: '', notes: '' }));
+    setExpenses((rows) =>
+      editingExpenseId
+        ? rows.map((row) => (row.id === editingExpenseId ? result.data : row))
+        : [result.data, ...rows],
+    );
+    setEditingExpenseId(null);
+    setExpForm((value) => ({
+      ...value,
+      description: '',
+      amount: '',
+      notes: '',
+    }));
+    broadcastSync('expense_saved');
+    showToast('Perbelanjaan disahkan server.');
   };
-
   const handleDeleteExpense = async (id) => {
-    if (editingExpenseId === id) {
-      handleCancelEditExpense();
+    if (!navigator.onLine || !supabase) {
+      showToast('Pemadaman memerlukan sambungan dalam talian.');
+      return;
     }
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    if (!window.confirm('Padam rekod perbelanjaan ini dari server?')) return;
     if (!String(id).startsWith('temp-')) {
       const { error } = await supabase.from('expenses').delete().eq('id', id);
-      if (error) console.error('Error deleting expense:', error);
+      if (error) {
+        showToast(error.message);
+        return;
+      }
     }
+    setExpenses((rows) => rows.filter((row) => row.id !== id));
+    if (editingExpenseId === id) handleCancelEditExpense();
     broadcastSync('delete_expense');
-    showToast('Rekod perbelanjaan dipadam.');
+    showToast('Perbelanjaan dipadam selepas pengesahan.');
   };
 
   const handleSaveBudget = async (e) => {
+    if (!navigator.onLine || !supabase) {
+      e?.preventDefault();
+      showToast(
+        'Tindakan ini memerlukan sambungan dalam talian. Tiada perubahan dihantar.',
+      );
+      return;
+    }
     if (e) e.preventDefault();
     const val = parseFloat(budgetInput);
-    if (isNaN(val) || val <= 0) { showToast('Sila masukkan amaun bajet yang sah.'); return; }
+    if (isNaN(val) || val <= 0) {
+      showToast('Sila masukkan amaun bajet yang sah.');
+      return;
+    }
     const newBudget = { ...budget, total: val };
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
+    if (error) {
+      showToast(error.message);
+      return;
+    }
     setBudget(newBudget);
-    await supabase.from('app_settings').upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
     broadcastSync('update_budget');
     setEditingBudget(false);
     showToast(`Bajet MYR dikemas kini: RM ${val.toLocaleString()}`);
   };
 
   const handleSaveSarWallet = async (e) => {
+    if (!navigator.onLine || !supabase) {
+      e?.preventDefault();
+      showToast('Tindakan ini memerlukan sambungan dalam talian.');
+      return;
+    }
     if (e) e.preventDefault();
     const val = parseFloat(sarWalletInput);
-    if (isNaN(val) || val <= 0) { showToast('Sila masukkan amaun SAR yang sah.'); return; }
+    if (isNaN(val) || val <= 0) {
+      showToast('Sila masukkan amaun SAR yang sah.');
+      return;
+    }
     const newBudget = { ...budget, sarWallet: val };
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
+    if (error) {
+      showToast(error.message);
+      return;
+    }
     setBudget(newBudget);
-    await supabase.from('app_settings').upsert({ key: 'budget', value: newBudget }, { onConflict: 'key' });
     broadcastSync('update_budget');
     setEditingSarWallet(false);
     showToast(`Duit tukaran SAR dikemas kini: SAR ${val.toLocaleString()}`);
@@ -531,7 +582,8 @@ export default function App() {
     });
   }, [expenses, expFilter, expCurrencyFilter]);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx');
     const catMap = Object.fromEntries(EXPENSE_CATEGORIES.map(c => [c.id, c.label]));
     const rows = expenses.map(e => ({
       Tarikh: e.date,
@@ -573,7 +625,7 @@ export default function App() {
   // ─── Supabase: Real-time Auto-Sync Engine ──────────────────────────────────
   const realtimeChannelRef = useRef(null);
   const isEditingFlightsRef = useRef(false);
-  const seedingRef = useRef({});
+  const loadingRef = useRef(false);
 
   // Broadcast any local mutations immediately to all other connected devices
   const broadcastSync = useCallback((action) => {
@@ -590,132 +642,203 @@ export default function App() {
     }
   }, []);
 
-  const loadAllData = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-
-    try {
-      const [doasRes, checklistRes, flightsRes, itineraryRes, seededRes, expensesRes, budgetRes] = await Promise.all([
-        supabase.from('doas').select('*').order('created_at', { ascending: false }),
-        supabase.from('checklist').select('*').order('id', { ascending: true }),
-        supabase.from('app_settings').select('value').eq('key', 'flights').single(),
-        supabase.from('itinerary').select('*').order('date', { ascending: true }).order('time', { ascending: true }),
-        supabase.from('app_settings').select('key').in('key', ['seeded_doas', 'seeded_checklist', 'seeded_itinerary']),
-        supabase.from('expenses').select('*').order('created_at', { ascending: false }),
-        supabase.from('app_settings').select('value').eq('key', 'budget').single(),
-      ]);
-
-      // Default sample data is inserted only ONCE per table. After that, an empty
-      // table means the user deleted everything on purpose, so it stays empty.
-      const seededKeys = new Set((seededRes.data || []).map(r => r.key));
-      const canSeed = !seededRes.error;
-      const markSeeded = (key) =>
-        supabase.from('app_settings').upsert({ key, value: { done: true } }, { onConflict: 'key' });
-
-      const syncTable = async (res, key, table, initial, setter) => {
-        if (!res.data) return;
-        if (res.data.length > 0) {
-          setter(prev => JSON.stringify(prev) === JSON.stringify(res.data) ? prev : res.data);
-          if (canSeed && !seededKeys.has(key)) await markSeeded(key);
-        } else if (canSeed && !seededKeys.has(key) && !seedingRef.current[key]) {
-          seedingRef.current[key] = true;
-          await markSeeded(key);
-          const toInsert = initial.map(({ id: _id, ...rest }) => rest);
-          const { data } = await supabase.from(table).insert(toInsert).select();
-          setter(data || initial);
-        } else {
-          setter(prev => prev.length === 0 ? prev : []);
+  const loadAllData = useCallback(
+    async (silent = false) => {
+      if (loadingRef.current) return;
+      loadingRef.current = true;
+      if (!silent) setIsLoading(true);
+      try {
+        if (!isOwner) return;
+        if (!navigator.onLine || !supabase) {
+          const [savedDoas, savedChecklist, savedItinerary, savedFlights] =
+            await Promise.all(
+              ['doas', 'checklist', 'itinerary', 'flights'].map((table) =>
+                get('privateRecords', table),
+              ),
+            );
+          if (savedDoas) setDoas(savedDoas.rows);
+          if (savedChecklist) setChecklist(savedChecklist.rows);
+          if (savedItinerary) setItinerary(savedItinerary.rows);
+          if (savedFlights?.value) setFlights(savedFlights.value);
+          return;
         }
-      };
-
-      await syncTable(doasRes, 'seeded_doas', 'doas', INITIAL_DOAS, setDoas);
-
-      await syncTable(checklistRes, 'seeded_checklist', 'checklist', INITIAL_CHECKLIST, setChecklist);
-
-      if (flightsRes.data && flightsRes.data.value) {
-        // Don't overwrite what the user is typing while in edit mode
-        if (!isEditingFlightsRef.current) {
-          setFlights(prev => JSON.stringify(prev) === JSON.stringify(flightsRes.data.value) ? prev : flightsRes.data.value);
+        const [
+          doasRes,
+          checklistRes,
+          flightsRes,
+          itineraryRes,
+          expensesRes,
+          budgetRes,
+        ] = await Promise.all([
+          supabase
+            .from('doas')
+            .select('*')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('checklist')
+            .select('*')
+            .order('id', { ascending: true }),
+          supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'flights')
+            .single(),
+          supabase
+            .from('itinerary')
+            .select('*')
+            .order('date', { ascending: true })
+            .order('time', { ascending: true }),
+          supabase
+            .from('expenses')
+            .select('*')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'budget')
+            .single(),
+        ]);
+        const owner = await get('meta', 'private-owner').catch(() => null);
+        for (const [table, result, setter] of [
+          ['doas', doasRes, setDoas],
+          ['checklist', checklistRes, setChecklist],
+          ['itinerary', itineraryRes, setItinerary],
+        ]) {
+          if (!result.error && result.data) {
+            const rows = await overlayPending(table, result.data).catch(
+              () => result.data,
+            );
+            setter(rows);
+            if (owner)
+              await cachePrivate(table, result.data, owner.value).catch(
+                () => {},
+              );
+          }
         }
-      } else if (!isEditingFlightsRef.current) {
-        await supabase.from('app_settings').upsert({ key: 'flights', value: INITIAL_FLIGHTS }, { onConflict: 'key' });
-        setFlights(INITIAL_FLIGHTS);
+        if (flightsRes.data?.value && !isEditingFlightsRef.current)
+          setFlights(flightsRes.data.value);
+        if (expensesRes.data) setExpenses(expensesRes.data);
+        if (budgetRes.data?.value) setBudget(budgetRes.data.value);
+        // No automatic seeding or settings writes on startup/reconnect.
+      } catch (error) {
+        console.warn('Data belum dimuatkan:', error.message);
+      } finally {
+        loadingRef.current = false;
+        if (!silent) setIsLoading(false);
       }
-
-      await syncTable(itineraryRes, 'seeded_itinerary', 'itinerary', INITIAL_ITINERARY, setItinerary);
-
-      // Load expenses
-      if (expensesRes.data) {
-        setExpenses(prev => JSON.stringify(prev) === JSON.stringify(expensesRes.data) ? prev : expensesRes.data);
-      }
-
-      // Load budget from app_settings
-      if (budgetRes.data && budgetRes.data.value) {
-        setBudget(prev => JSON.stringify(prev) === JSON.stringify(budgetRes.data.value) ? prev : budgetRes.data.value);
-      }
-    } catch (err) {
-      console.error('Error loading data from Supabase:', err);
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  }, []);
+    },
+    [isOwner],
+  );
 
   useEffect(() => {
     isEditingFlightsRef.current = isEditingFlights;
   }, [isEditingFlights]);
-
-  // Set up Realtime WebSockets, Background Polling & Visibility Sync
   useEffect(() => {
-    // Initial fetch with spinner
     loadAllData(false);
-
-    // Supabase Realtime Channel
-    const channel = supabase.channel('titipandoa_realtime');
-    realtimeChannelRef.current = channel;
-
-    channel
-      .on('broadcast', { event: 'sync' }, () => {
-        loadAllData(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'doas' }, () => {
-        loadAllData(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist' }, () => {
-        loadAllData(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'itinerary' }, () => {
-        loadAllData(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
-        loadAllData(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, () => {
-        loadAllData(true);
-      })
-      .subscribe();
-
-    // 1. Periodic background sync every 5 seconds (seamless fallback)
-    const pollInterval = setInterval(() => {
-      loadAllData(true);
-    }, 5000);
-
-    // 2. Immediate sync when user refocuses tab or unlocks phone screen
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        loadAllData(true);
+    let channel;
+    let timer;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      clearTimeout(timer);
+      timer = setTimeout(() => loadAllData(true), 250);
+    };
+    const connect = () => {
+      if (
+        !supabase ||
+        !isOwner ||
+        !navigator.onLine ||
+        document.visibilityState !== 'visible'
+      )
+        return;
+      if (channel) return;
+      channel = supabase.channel('titipandoa_realtime');
+      realtimeChannelRef.current = channel;
+      for (const table of [
+        'doas',
+        'checklist',
+        'itinerary',
+        'expenses',
+        'app_settings',
+      ])
+        channel.on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table },
+          refresh,
+        );
+      channel.on('broadcast', { event: 'sync' }, refresh).subscribe();
+    };
+    const disconnect = () => {
+      if (channel) {
+        supabase?.removeChannel(channel);
+        channel = null;
+        realtimeChannelRef.current = null;
       }
     };
-    const handleFocus = () => loadAllData(true);
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      clearInterval(pollInterval);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('focus', handleFocus);
-      supabase.removeChannel(channel);
+    const visibility = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
+        connect();
+        refresh();
+      } else disconnect();
     };
-  }, [loadAllData]);
+    const offline = () => {
+      disconnect();
+      loadAllData(true);
+    };
+    connect();
+    window.addEventListener('online', visibility);
+    window.addEventListener('offline', offline);
+    window.addEventListener('titipandoa:offline-change', refresh);
+    document.addEventListener('visibilitychange', visibility);
+    const stopSync = startSyncTriggers();
+    return () => {
+      clearTimeout(timer);
+      disconnect();
+      stopSync();
+      window.removeEventListener('online', visibility);
+      window.removeEventListener('offline', offline);
+      window.removeEventListener('titipandoa:offline-change', refresh);
+      document.removeEventListener('visibilitychange', visibility);
+    };
+  }, [loadAllData, isOwner]);
+
+  useEffect(() => {
+    let mounted = true;
+    get('drafts', 'doa-submission')
+      .then((draft) => {
+        if (mounted && draft) {
+          setSenderName(draft.value.senderName || '');
+          setMessage(draft.value.message || '');
+          setCategory(draft.value.category || 'Kesihatan');
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setDraftHydrated(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!draftHydrated) return;
+    let cancelled = false;
+    get('preferences', 'save-drafts')
+      .then((setting) => {
+        if (!cancelled && setting?.value)
+          return get('drafts', 'doa-submission').then((existing) =>
+            put('drafts', {
+              ...existing,
+              id: 'doa-submission',
+              value: { senderName, message, category },
+              updatedAt: new Date().getTime(),
+            }),
+          );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [senderName, message, category, draftHydrated]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -739,13 +862,21 @@ export default function App() {
       created_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase.from('doas').insert([newDoa]).select().single();
-    if (!error && data) {
-      setDoas(prev => [data, ...prev]);
-    }
-    broadcastSync('new_doa');
-    setIsSubmitted(true);
-    showToast('Titipan doa anda berjaya dihantar! Jazakallah Khair. 🌸');
+    try {
+      if (!window.confirm('Hantar titipan ini? Jika sambungan terputus, pesanan disimpan pada peranti dan dihantar apabila sambungan kembali.')) return;
+      const draft = await get('drafts','doa-submission');
+      const stableId = draft?.submissionId || crypto.randomUUID();
+      await put('drafts',{id:'doa-submission',submissionId:stableId,value:{senderName,message,category},updatedAt:new Date().getTime()});
+      const queued = await queueDoa({...newDoa,id:stableId});
+      if (!['queued','running','synced'].includes(queued.status)) await retryOperation(queued.id);
+      if (navigator.onLine) await synchronize();
+      const operation = await get('outbox','doa-'+stableId);
+      if (operation?.status === 'synced') {
+        setDoas(prev => prev.some(row => row.id === stableId) ? prev : [{...newDoa,id:stableId},...prev]);
+        setIsSubmitted(true); await remove('drafts','doa-submission');
+        showToast('Titipan doa disahkan oleh server. Jazakallah Khair.');
+      } else showToast('Titipan disimpan pada peranti; belum disahkan server. Semak Perubahan Belum Disegerakkan.');
+    } catch (error) { showToast(error.message || 'Pesanan belum dapat disimpan. Jangan tutup halaman ini.'); }
   };
 
   const handleResetForm = () => {
@@ -756,38 +887,86 @@ export default function App() {
   };
 
   const toggleReadStatus = async (id) => {
-    const doa = doas.find(d => d.id === id);
+    if (!navigator.onLine || !supabase) {
+      showToast('Tindakan ini memerlukan sambungan dalam talian.');
+      return;
+    }
+    const doa = doas.find((row) => row.id === id);
     if (!doa) return;
     const updated = { is_read: !doa.is_read };
-    setDoas(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
-    await supabase.from('doas').update(updated).eq('id', id);
+    const { error } = await supabase.from('doas').update(updated).eq('id', id);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setDoas((rows) =>
+      rows.map((row) => (row.id === id ? { ...row, ...updated } : row)),
+    );
     broadcastSync('toggle_read');
   };
-
   const toggleBookmark = async (id) => {
-    const doa = doas.find(d => d.id === id);
+    if (!navigator.onLine || !supabase) {
+      showToast('Tindakan ini memerlukan sambungan dalam talian.');
+      return;
+    }
+    const doa = doas.find((row) => row.id === id);
     if (!doa) return;
     const updated = { is_bookmarked: !doa.is_bookmarked };
-    setDoas(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
-    await supabase.from('doas').update(updated).eq('id', id);
+    const { error } = await supabase.from('doas').update(updated).eq('id', id);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setDoas((rows) =>
+      rows.map((row) => (row.id === id ? { ...row, ...updated } : row)),
+    );
     broadcastSync('toggle_bookmark');
   };
-
   const incrementAmin = async (id) => {
-    const doa = doas.find(d => d.id === id);
+    if (!navigator.onLine || !supabase) {
+      showToast(
+        'Amin memerlukan sambungan dalam talian dan tidak dimasukkan ke giliran luar talian.',
+      );
+      return;
+    }
+    const doa = doas.find((row) => row.id === id);
     if (!doa) return;
-    const newCount = doa.amin_count + 1;
-    setDoas(prev => prev.map(d => d.id === id ? { ...d, amin_count: newCount } : d));
-    await supabase.from('doas').update({ amin_count: newCount }).eq('id', id);
+    const newCount = (doa.amin_count || 0) + 1;
+    const { data, error } = await supabase
+      .from('doas')
+      .update({ amin_count: newCount })
+      .eq('id', id)
+      .eq('amin_count', doa.amin_count || 0)
+      .select('id,amin_count');
+    if (error || !data?.length) {
+      showToast(
+        'Amin belum disahkan. Muat semula bacaan sebelum mencuba lagi.',
+      );
+      loadAllData(true);
+      return;
+    }
+    setDoas((rows) =>
+      rows.map((row) =>
+        row.id === id ? { ...row, amin_count: newCount } : row,
+      ),
+    );
     broadcastSync('increment_amin');
-    showToast('Satu ucapan Amin telah dititipkan dengan penuh kasih! 🤲💖');
+    showToast('Ucapan Amin disahkan.');
   };
-
   const handleDeleteDoa = async (id) => {
-    setDoas(prev => prev.filter(d => d.id !== id));
-    await supabase.from('doas').delete().eq('id', id);
+    if (!navigator.onLine || !supabase) {
+      showToast('Pemadaman memerlukan sambungan dalam talian.');
+      return;
+    }
+    if (!window.confirm('Padam titipan doa ini dari server?')) return;
+    const { error } = await supabase.from('doas').delete().eq('id', id);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+    setDoas((rows) => rows.filter((row) => row.id !== id));
     broadcastSync('delete_doa');
-    showToast('Doa telah dipadam.');
+    showToast('Doa dipadam selepas pengesahan server.');
   };
 
   const handleCopyLink = () => {
@@ -837,15 +1016,42 @@ export default function App() {
   };
 
   const toggleChecklist = async (id) => {
-    const item = checklist.find(c => c.id === id);
+    const item = checklist.find((c) => c.id === id);
     if (!item) return;
     const updated = { completed: !item.completed };
-    setChecklist(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
-    await supabase.from('checklist').update(updated).eq('id', id);
-    broadcastSync('toggle_checklist');
+    try {
+      const cached = await get('privateRecords', 'checklist');
+      if (cached) {
+        await localPatch('checklist', id, updated);
+        setChecklist((prev) =>
+          prev.map((row) => (row.id === id ? { ...row, ...updated } : row)),
+        );
+        showToast(
+          'Perubahan disimpan pada peranti. Menunggu pengesahan penyegerakan.',
+        );
+        if (navigator.onLine) synchronize();
+      } else {
+        if (!navigator.onLine || !supabase)
+          throw new Error(
+            'Muat turun senarai semak dahulu untuk mengubahnya luar talian.',
+          );
+        const { error } = await supabase
+          .from('checklist')
+          .update(updated)
+          .eq('id', id);
+        if (error) throw error;
+        setChecklist((prev) =>
+          prev.map((row) => (row.id === id ? { ...row, ...updated } : row)),
+        );
+        broadcastSync('toggle_checklist');
+      }
+    } catch (error) {
+      showToast(error.message);
+    }
   };
 
   const handleAddChecklistItem = async (e) => {
+    if (!navigator.onLine || !supabase) { showToast('Tindakan ini memerlukan sambungan dalam talian. Tiada perubahan dihantar.'); return; }
     e.preventDefault();
     if (!newChecklistItem.trim()) return;
     const newItem = {
@@ -857,6 +1063,7 @@ export default function App() {
     if (!error && data) {
       setChecklist(prev => [...prev, data]);
     }
+    if (error || !data) { showToast('Item belum disahkan server. Draf dikekalkan.'); return; }
     broadcastSync('add_checklist');
     setNewChecklistItem('');
     showToast('Item baru ditambah ke senarai semak!');
@@ -868,22 +1075,28 @@ export default function App() {
   };
 
   const saveEditChecklist = async (id) => {
+    if (!navigator.onLine || !supabase) { showToast('Tindakan ini memerlukan sambungan dalam talian. Tiada perubahan dihantar.'); return; }
     const updated = { text: editingChecklistText };
+    const {error} = await supabase.from('checklist').update(updated).eq('id', id);
+    if (error) { showToast(error.message); return; }
     setChecklist(prev => prev.map(item => item.id === id ? { ...item, ...updated } : item));
     setEditingChecklistId(null);
-    await supabase.from('checklist').update(updated).eq('id', id);
     broadcastSync('edit_checklist');
     showToast('Perkara disemak dikemas kini!');
   };
 
   const deleteChecklistItem = async (id) => {
+    if (!navigator.onLine || !supabase) { showToast('Tindakan ini memerlukan sambungan dalam talian. Tiada perubahan dihantar.'); return; }
+    if (!window.confirm('Padam item senarai semak ini dari server?')) return;
+    const {error} = await supabase.from('checklist').delete().eq('id', id);
+    if (error) { showToast(error.message); return; }
     setChecklist(prev => prev.filter(item => item.id !== id));
-    await supabase.from('checklist').delete().eq('id', id);
     broadcastSync('delete_checklist');
     showToast('Item dipadam dari senarai.');
   };
 
   const handleAddItinerary = async (e) => {
+    if (!navigator.onLine || !supabase) { showToast('Tindakan ini memerlukan sambungan dalam talian. Tiada perubahan dihantar.'); return; }
     e.preventDefault();
     if (!itActivity.trim()) return;
     const newEntry = {
@@ -897,14 +1110,18 @@ export default function App() {
     if (!error && data) {
       setItinerary(prev => [...prev, data].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
     }
+    if (error || !data) { showToast('Atur cara belum disahkan server. Draf dikekalkan.'); return; }
     broadcastSync('add_itinerary');
     setItActivity('');
     showToast('Atur cara baru berjaya ditambah!');
   };
 
   const handleDeleteItinerary = async (id) => {
+    if (!navigator.onLine || !supabase) { showToast('Tindakan ini memerlukan sambungan dalam talian. Tiada perubahan dihantar.'); return; }
+    if (!window.confirm('Padam atur cara ini dari server?')) return;
+    const {error} = await supabase.from('itinerary').delete().eq('id', id);
+    if (error) { showToast(error.message); return; }
     setItinerary(prev => prev.filter(it => it.id !== id));
-    await supabase.from('itinerary').delete().eq('id', id);
     broadcastSync('delete_itinerary');
     showToast('Atur cara dipadam.');
   };
@@ -980,27 +1197,33 @@ export default function App() {
   }, [flights, itinerary]);
 
   return (
-    <div className="min-h-screen bg-rose-50/40 text-slate-800 font-sans flex flex-col selection:bg-pink-500 selection:text-white">
+    <div className="td-app min-h-screen font-sans flex flex-col" data-theme={siteTheme}>
+      <a className="skip-link" href="#main-content">Langkau ke kandungan</a>
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 bg-rose-950 text-pink-100 px-5 py-3 rounded-2xl shadow-2xl border border-pink-700/50 flex items-center gap-3 animate-bounce">
+        <div role="status" className="fixed top-5 right-5 z-50 bg-rose-950 text-pink-100 px-5 py-3 rounded-2xl shadow-2xl border border-pink-700/50 flex items-center gap-3">
           <Sparkles className="w-5 h-5 text-pink-400" />
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
 
       {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 z-[60] bg-rose-50/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+      {isLoading && !['home', 'submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
+        <div className="fixed inset-x-0 bottom-0 top-[70px] z-[60] bg-rose-50/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-200 animate-pulse">
             <Flower2 className="w-7 h-7 text-white fill-white/20" />
           </div>
+          <div className="data-skeleton" aria-hidden="true"><div/><div/><div/></div>
           <p className="text-sm font-semibold text-pink-700">Memuatkan data...</p>
         </div>
       )}
 
+      <SiteHeader activeTab={activeTab} navigate={navigate} theme={siteTheme} toggleTheme={toggleSiteTheme}
+        isOwner={isOwner} hidden={tasbihFocus || readingFocus}
+        openOwner={openOwner} />
+      <OfflineChrome navigate={navigate} hidden={tasbihFocus || readingFocus} saveBeforeUpdate={saveBeforeUpdate} />
       {/* Header Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs">
+      <header hidden={tasbihFocus || readingFocus || !isOwner} className="owner-toolbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2.5 flex items-center justify-between gap-3 lg:gap-4">
           {/* Brand Logo & Pilgrim Name */}
           <div 
@@ -1185,10 +1408,16 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8">
+      <main id="main-content" className={`site-main flex-1 w-full mx-auto ${activeTab === 'home' ? 'is-home' : 'p-4 sm:p-6 md:p-8'}`}>
+        {activeTab === 'home' && (smallScreen ? <Dashboard navigate={navigate} onRead={openLibraryEntry} isOwner={isOwner} checklist={checklist} itinerary={itinerary} openOwner={openOwner} /> : <Home navigate={navigate} onReadEntry={openLibraryEntry} doas={doas} isOwner={isOwner} loading={isLoading} onAmin={incrementAmin} />)}
+        {['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} />}
+        {activeTab === 'offline' && <OfflinePanel />}
+        {libraryVisited && <div hidden={activeTab !== 'collection'}><DoaLibrary entryId={readingRoute.entryId} guideId={readingRoute.guideId} onOpenEntry={openLibraryEntry} onOpenGuide={openLibraryGuide} onReadingChange={setReadingFocus} onTasbih={openTasbihEntry} /></div>}
+        {activeTab === 'about' && <About />}
 
         {/* TAB 1: PUBLIC SUBMISSION FORM VIEW */}
         {}
+        <div hidden={activeTab !== 'tasbih'}><Tasbih libraryRequest={tasbihRequest} onFocusChange={setTasbihFocus} onBack={() => navigate('home')} /></div>
         {activeTab === 'submission' && (
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-600 via-rose-700 to-rose-950 text-white p-6 sm:p-8 shadow-xl shadow-pink-200/50">
@@ -1694,6 +1923,7 @@ export default function App() {
                         <div className="flex items-center gap-3 flex-1">
                           <button
                             onClick={() => toggleChecklist(item.id)}
+                            aria-label={`Tandakan ${item.text}`} aria-pressed={item.completed}
                             className={`w-5 h-5 rounded-md flex items-center justify-center transition shrink-0 ${
                               item.completed ? 'bg-pink-500 text-white' : 'border-2 border-pink-300 hover:border-pink-500'
                             }`}
@@ -1771,7 +2001,9 @@ export default function App() {
                 onClick={async () => {
                   if (isEditingFlights) {
                     // Save flights to Supabase when closing edit mode
-                    await supabase.from('app_settings').upsert({ key: 'flights', value: flights }, { onConflict: 'key' });
+                    if (!navigator.onLine || !supabase) { showToast('Sambungan diperlukan untuk menyimpan penerbangan. Suntingan dikekalkan.'); return; }
+                    const {error} = await supabase.from('app_settings').upsert({ key: 'flights', value: flights }, { onConflict: 'key' });
+                    if (error) { showToast(error.message); return; }
                     broadcastSync('flights_saved');
                     showToast('Maklumat penerbangan berjaya disimpan! ✈️');
                   }
@@ -2236,7 +2468,8 @@ export default function App() {
         )}
 
         {/* TAB 7: EXPENSES TRACKER */}
-        {activeTab === 'expenses' && (
+        {activeTab === 'expenses' && !connected && <div className="offline-notice" role="status">Perbelanjaan dan bajet tidak dimuat turun pada peranti ini. Buka semula dalam talian untuk melihat data server.</div>}
+        {activeTab === 'expenses' && connected && (
           <div className="space-y-6 max-w-5xl mx-auto">
             {/* Header */}
             <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
@@ -2749,7 +2982,8 @@ export default function App() {
         )}
       </main>
 
-      <footer className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500 space-y-2">
+      <BottomNavigation active={activeTab === 'collection' && readingRoute.guideId ? 'zikrhub' : activeTab} navigate={navigate} hidden={tasbihFocus || readingFocus} />
+      <footer hidden={tasbihFocus || readingFocus} className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500 space-y-2">
         <p className="font-medium text-pink-700">Titipan Doa — "Titipkan doa, iringi perjalanan ke Tanah Suci."</p>
         <p className="opacity-70">© 2026 Titipan Doa Platform. Dikhaskan buat {pilgrimName}.</p>
         {!isOwner && (

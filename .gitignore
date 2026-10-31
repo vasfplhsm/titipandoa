@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local configuration and native build products
+.env
+.env.*
+!.env.example
+ios/DerivedData/
+ios/Generated/
+**/xcuserdata/

@@ -1,0 +1,449 @@
+{
+  "total": 54,
+  "verified": 54,
+  "pending": 1,
+  "candidate_total": 55,
+  "excluded_candidates": [
+    {
+      "reference": "Sahih al-Bukhari 834",
+      "reason": "Downloaded source contains replacement characters; not imported."
+    }
+  ],
+  "quran": 32,
+  "hadith": 22,
+  "method": "Exact Arabic substring and source-snapshot hashes; manual editorial review of Malay explanations, references, context and repetition counts. Not a new scholarly sanad grading.",
+  "entries": [
+    {
+      "id": "quran-2-127",
+      "reference": "Al-Quran 2:127",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "1637ddaf7949a7179c5e969734281760349c17723c15521d6158b06fa2c43a14",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-2-128",
+      "reference": "Al-Quran 2:128",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "f3d0cd8a6fb80476de8d0badce296dd39ebfc56e4956ff97f1c6250d17238fbd",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-2-201",
+      "reference": "Al-Quran 2:201",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "9a4fab930616b9e68cd65b05fb3cfeabb9d482a56ff03038f8aaadcd4b5c92d2",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-2-250",
+      "reference": "Al-Quran 2:250",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "abd3900103aa922105a0fba2dfe8b720e82288841f2b1d7323504996e493aecc",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-2-286",
+      "reference": "Al-Quran 2:286",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "c53f5efcb54ee24c293d23045708d12e4288064b215ec192e0f44ee47dce2436",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-3-8",
+      "reference": "Al-Quran 3:8",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "c5101b0b7610744630fe81ce5277ba5e08f04ee6599a8a2ab870d96f52d53566",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-3-16",
+      "reference": "Al-Quran 3:16",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "54464e01ef0008f9558ee4d31d0e620e5d0dffb845ebcd922d9ab97dc614c184",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-3-38",
+      "reference": "Al-Quran 3:38",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "9454226afb43ddba80a04598ba4c85197db6242f365c0ef356260a19d1b1d83f",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-3-147",
+      "reference": "Al-Quran 3:147",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "c33e5199fe17a9c8306729be7fa00284fde3a83f6c8d12f9fb50ac720a515f44",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-3-193",
+      "reference": "Al-Quran 3:193",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "e4d18435cd29a396368d8fa3036375607a1ac8c31d4f414f4946782ccaddce80",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-7-23",
+      "reference": "Al-Quran 7:23",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "d27e23155bbc6d95db54fa025825bc5a65d31ca085f24c49d6fc19caedf9f215",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-7-126",
+      "reference": "Al-Quran 7:126",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "c70a8665c15627773952612b19f0f6405b0e1197660a052a3c2e7f0127b08ec0",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-14-40",
+      "reference": "Al-Quran 14:40",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "aefbfd65a7ff24b6bca13c4ad74adba05e0893a7144519cf1555087a0efd4b51",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-14-41",
+      "reference": "Al-Quran 14:41",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "3becb923e3d073e0b195fdd5ecc5f9e5d36b01c5ac312ffff72d05db0ed3be85",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-17-24",
+      "reference": "Al-Quran 17:24",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "dfde45fb11450f62d6b40365df8b264f376ca513580ca5d67fd971dd711d4d5b",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-17-80",
+      "reference": "Al-Quran 17:80",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "1d9bd7f722856a762829d68311a704cfb2126cff986b5791982d8797ceca8851",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-18-10",
+      "reference": "Al-Quran 18:10",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "385fc544fe6f6d2578b2a603e7092047469af8c9b808d7342aa4b70d84da78b8",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-20-25-28",
+      "reference": "Al-Quran 20:25-28",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "0b99cb2d173142608b89eb7f52e2d62e4539c0c81591c1078fe5c36dc880d5cc",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-20-114",
+      "reference": "Al-Quran 20:114",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "d237eb42b2627eec303c4d9af240a10f93df2c9cd59d62fda810bd3ef2aea7a0",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-21-83",
+      "reference": "Al-Quran 21:83",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "61e222022a395b0d58dc4ba66c5f32bba55693584d49f8fe2010cdcec711734d",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-21-87",
+      "reference": "Al-Quran 21:87",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "06b1cc930cd114d580c55021a45203ce8d827fa1d0645e8bfc5cf7d2644bd46b",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-21-89",
+      "reference": "Al-Quran 21:89",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "967f2def9c27926521c75206f72d4d89c1b2f72bd7aa8bc31704373c37ac5587",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-23-97-98",
+      "reference": "Al-Quran 23:97-98",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "fdba66ea5ab52e69f3b2b1dd25f49e969566ab4240c3abb263de939f74558742",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-23-118",
+      "reference": "Al-Quran 23:118",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "0ee523d57c60744edb10908142faf4f41d097279c118fa8885bd37273056daac",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-25-74",
+      "reference": "Al-Quran 25:74",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "ee2b6108a6310d3dfa50477d24b618133c21ee64ed8f59d20dcfdee3376a9338",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-27-19",
+      "reference": "Al-Quran 27:19",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "f7a6d9f0319e0ca8024a87050c6ba280ce023883babd505c56f6542371b52e89",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-28-24",
+      "reference": "Al-Quran 28:24",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "57887e66d7acadeee86f66609bd48a12da58f7129dcec44fef544a5e6369505d",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-59-10",
+      "reference": "Al-Quran 59:10",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "be2cc1f53ac2f06819ac8c80a6bd6882e9d00d9393e8919e21b47a60d870d60f",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-66-8",
+      "reference": "Al-Quran 66:8",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "0aa697a793f276ce94aa4ee255b3e09722a3c7d7525bfb3dc17e8fe362b9d758",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-112-1-4",
+      "reference": "Al-Quran 112:1-4",
+      "count": 3,
+      "count_reference": "Sunan Abi Dawud 5082",
+      "arabic_sha256": "20f772ad16bbd57ad780d1a7231908cca221a65147b201067e8256849ea26d85",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-113-1-5",
+      "reference": "Al-Quran 113:1-5",
+      "count": 3,
+      "count_reference": "Sunan Abi Dawud 5082",
+      "arabic_sha256": "bf3094b121121a67ac868c6250e7464e9aca70cf1e380ef444558c2ac5a019a9",
+      "rumi_available": false
+    },
+    {
+      "id": "quran-114-1-6",
+      "reference": "Al-Quran 114:1-6",
+      "count": 3,
+      "count_reference": "Sunan Abi Dawud 5082",
+      "arabic_sha256": "d688fdc1de3a571f02427a2671ae245d1564e05daa51f7c8cd238a324fbcdc89",
+      "rumi_available": false
+    },
+    {
+      "id": "h-tidur",
+      "reference": "Sahih al-Bukhari 6314",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "ab16ac550ebf98cbe0ffa2454b76866132f33250b06f491d9cc1869e98e15fc6",
+      "rumi_available": true
+    },
+    {
+      "id": "h-bangun",
+      "reference": "Sahih al-Bukhari 6314",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "635fb0ab3bcd41d7f4ec2a6314d02a1864971d093eb5716da37197fb747c79e4",
+      "rumi_available": true
+    },
+    {
+      "id": "h-makan",
+      "reference": "Sahih al-Bukhari 5458",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "d63e5f132464c02fa79151156bc42a6ee30e90fd4d78b8fb0c125cc32222cc7c",
+      "rumi_available": false
+    },
+    {
+      "id": "h-sembuh",
+      "reference": "Sahih al-Bukhari 5743",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "dbd251a88f2560635eec63add3143213c98408d64b1c1243f077c642bfb6158a",
+      "rumi_available": false
+    },
+    {
+      "id": "h-gelisah",
+      "reference": "Sahih al-Bukhari 6369",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "1c1250d440751ce835e6c40ed3f6c1dc1accd3b2f10486d94f8a3f9fa2903c3c",
+      "rumi_available": false
+    },
+    {
+      "id": "h-sayyid",
+      "reference": "Sahih al-Bukhari 6306",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "6ce7fa31440bfc23c2fe69c534c664fc6c10f56a5b689c1e42f52f38f239260f",
+      "rumi_available": false
+    },
+    {
+      "id": "h-selawat",
+      "reference": "Sahih al-Bukhari 3370",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "499709129ae8bb0306fc18d682451a4916a705afd56a8e456365a76b015ca5d5",
+      "rumi_available": false
+    },
+    {
+      "id": "h-singgah",
+      "reference": "Sahih Muslim 2708a",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "39bc09969e681187bdbcf4838e2a43c1ad23ed786565f7cc7a9a530c2877e7d7",
+      "rumi_available": true
+    },
+    {
+      "id": "h-musafir",
+      "reference": "Sahih Muslim 1342",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "39fe3252389defd072a19804c13191c51a63f11f4f2dcde7f9f47f926034163a",
+      "rumi_available": false
+    },
+    {
+      "id": "h-pulang",
+      "reference": "Sahih Muslim 1342",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "fca2322ec5bceab2256f9af8d74d36d5c8130cfa85a4733abbb5c9f489320866",
+      "rumi_available": true
+    },
+    {
+      "id": "h-talbiyah",
+      "reference": "Sahih Muslim 1184a",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "55d9ce5ca0c9bc18b6347f2edafaf13b9de535ad7049f19c772bb9f2efd161b8",
+      "rumi_available": false
+    },
+    {
+      "id": "h-petunjuk",
+      "reference": "Sahih Muslim 2721a",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "64b13693f36e4cf50f626b68d7bc11b89ac2f11ddfb8b9d4eefc2fe47586d4cb",
+      "rumi_available": true
+    },
+    {
+      "id": "h-agama",
+      "reference": "Sahih Muslim 2720",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "c4bf0a11b343ee5eaa30dcb292d0ac75e7ffd548378f6e4f81a5f173bccc693a",
+      "rumi_available": false
+    },
+    {
+      "id": "h-pagi-luas",
+      "reference": "Sahih Muslim 2726a",
+      "count": 3,
+      "count_reference": "Sahih Muslim 2726a",
+      "arabic_sha256": "3457ca2b9aadcf637d0b54e5e911c06b2fc522bdc15aea521beb78bd5c4c374f",
+      "rumi_available": false
+    },
+    {
+      "id": "h-tasbih-pagi",
+      "reference": "Sahih Muslim 2692",
+      "count": 100,
+      "count_reference": "Sahih Muslim 2692",
+      "arabic_sha256": "01807d3530700f42c32b3ff195ad57564229b251c00887fddd6f1b2cfe19f45f",
+      "rumi_available": true
+    },
+    {
+      "id": "h-salam",
+      "reference": "Sahih Muslim 591",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "3840c67e4e5a5e049559fab53d9d6c6f134a9da0104eefb5b918eb48ee2f030d",
+      "rumi_available": true
+    },
+    {
+      "id": "h-istighfar",
+      "reference": "Sahih Muslim 591",
+      "count": 3,
+      "count_reference": "Sahih Muslim 591",
+      "arabic_sha256": "9ef913a347672f03b6c0b851c3a052ebd52c61a9ff40c76f1e76d932d031117f",
+      "rumi_available": true
+    },
+    {
+      "id": "h-tahlil-solat",
+      "reference": "Sahih Muslim 597a",
+      "count": 1,
+      "count_reference": "Sahih Muslim 597a",
+      "arabic_sha256": "6d4e93101c3d3e9ffe9b4ff86ed30704501cedb4e3971491fb8ed80cba13283c",
+      "rumi_available": false
+    },
+    {
+      "id": "h-tasbih",
+      "reference": "Sahih Muslim 2137a",
+      "count": 33,
+      "count_reference": "Sahih Muslim 597a",
+      "arabic_sha256": "a795bdbc60b50cd46594e6ff1eb3df8ac192e8cd9caef15bdda72c950d3fb1cf",
+      "rumi_available": true
+    },
+    {
+      "id": "h-tahmid",
+      "reference": "Sahih Muslim 2137a",
+      "count": 33,
+      "count_reference": "Sahih Muslim 597a",
+      "arabic_sha256": "c6df3ffabdc45c591e7101ac7c53f06230493bad43b4e78111de42dfb8c8295f",
+      "rumi_available": true
+    },
+    {
+      "id": "h-takbir",
+      "reference": "Sahih Muslim 2137a",
+      "count": 33,
+      "count_reference": "Sahih Muslim 597a",
+      "arabic_sha256": "38d2a0f6751cf81d31a22e9da30d163873ab436f45f55b645b3dd6ab0c59e665",
+      "rumi_available": true
+    },
+    {
+      "id": "h-keluar",
+      "reference": "Sunan Abi Dawud 5095",
+      "count": null,
+      "count_reference": null,
+      "arabic_sha256": "33e98e886d67e66657f1471e5cc0444be8b7153efffdae7a087b2e9a8977e351",
+      "rumi_available": true
+    }
+  ]
+}
