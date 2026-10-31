@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 780" role="img" aria-label="Ilustrasi masjid pada waktu senja">
+<defs>
+<linearGradient id="sky" x2="0" y2="1"><stop stop-color="#bd9274"/><stop offset=".48" stop-color="#f4d6a6"/><stop offset="1" stop-color="#d9ad62"/></linearGradient>
+<linearGradient id="stone" x2="1" y2=".4"><stop stop-color="#82684e"/><stop offset=".45" stop-color="#cfaf7f"/><stop offset="1" stop-color="#9b7856"/></linearGradient>
+<linearGradient id="dome" x2="1" y2=".3"><stop stop-color="#e0c59c"/><stop offset=".65" stop-color="#94714f"/><stop offset="1" stop-color="#70543f"/></linearGradient>
+<linearGradient id="ground" x2="0" y2="1"><stop stop-color="#c4aa7d"/><stop offset="1" stop-color="#78694c"/></linearGradient>
+<radialGradient id="sun"><stop stop-color="#fff8da" stop-opacity=".85"/><stop offset="1" stop-color="#fff0c1" stop-opacity="0"/></radialGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="13"/></filter>
+<pattern id="windows" width="31" height="64" patternUnits="userSpaceOnUse"><path d="M8 57V27Q15 10 23 27V57Z" fill="#725a43"/><path d="M10 57V29Q15 17 21 29V57" fill="#ac8b62"/><path d="M15 25V57" stroke="#806344"/></pattern>
+<g id="palm"><path d="M0 0Q-10-75 0-160" fill="none" stroke="#534d32" stroke-width="9"/><g fill="#4d5130"><path d="M0-160Q-50-213-89-162Q-50-182 0-160Z"/><path d="M0-160Q-28-230-65-210Q-23-208 0-160Z"/><path d="M0-160Q11-236 50-219Q13-204 0-160Z"/><path d="M0-160Q63-222 92-176Q49-188 0-160Z"/><path d="M0-160Q76-187 100-140Q48-164 0-160Z"/><path d="M0-160Q-70-193-100-139Q-44-167 0-160Z"/></g></g>
+<g id="minaret"><path d="M-19 0L-15-232H15L19 0Z" fill="url(#stone)"/><path d="M-24-225H24V-239H-24Z M-22-267H22V-280H-22Z" fill="#d7bc90"/><path d="M-14-239V-267H14V-239Z" fill="#9d805c"/><path d="M-14-280V-309Q0-339 14-309V-280Z" fill="url(#dome)"/><path d="M0-327V-351" stroke="#b78c51" stroke-width="3"/><circle cy="-354" r="4" fill="#e6c989"/><g fill="#594b3d"><path d="M-7-242V-260Q0-271 7-260V-242Z"/><path d="M-5-175V-194Q0-202 5-194V-175Z"/><path d="M-5-96V-115Q0-123 5-115V-96Z"/></g></g>
+</defs>
+<path fill="url(#sky)" d="M0 0H600V780H0Z"/>
+<ellipse cx="420" cy="420" rx="260" ry="280" fill="url(#sun)"/>
+<g fill="#fff4d6" opacity=".3" filter="url(#blur)"><ellipse cx="170" cy="260" rx="180" ry="15"/><ellipse cx="480" cy="340" rx="130" ry="13"/><ellipse cx="110" cy="390" rx="170" ry="9"/></g>
+<g fill="#b49169" opacity=".3"><path d="M0 590L50 563L100 592L170 552L230 593L300 564L380 600L460 564L540 588L600 560V780H0Z"/></g>
+<path d="M0 680H600V780H0Z" fill="url(#ground)"/>
+<g transform="translate(0 230) scale(1 .7)"><use href="#minaret" transform="translate(184 649) scale(.6)"/>
+<use href="#minaret" transform="translate(484 657) scale(.48)"/>
+<path d="M92 676V583H450V676Z" fill="url(#stone)"/>
+<path d="M87 579H455V590H87Z" fill="#e4c89c"/>
+<path d="M122 579V551H412V579Z" fill="#b3946d"/>
+<path d="M185 551C181 499 232 486 266 444C299 486 351 499 347 551Z" fill="url(#dome)"/>
+<path d="M266 445V425" stroke="#bea16a" stroke-width="4"/><path d="M274 420A9 9 0 1 1 264 409A7 7 0 1 0 274 420" fill="#e5c680"/>
+<g fill="none" stroke="#e2c197" opacity=".35"><path d="M266 453Q218 508 219 550M266 453Q245 508 247 550M266 453Q288 508 287 550M266 453Q318 508 317 550"/></g>
+<path d="M92 601H450V676H92Z" fill="url(#windows)"/>
+<path d="M226 676V618Q266 563 306 618V676Z" fill="#d8b98b"/><path d="M238 676V622Q266 584 294 622V676Z" fill="#67533e"/><path d="M248 676V626Q266 602 284 626V676Z" fill="#93794f"/>
+<g fill="url(#dome)"><path d="M105 580Q103 553 126 537Q149 553 147 580Z"/><path d="M370 580Q368 553 391 537Q414 553 412 580Z"/></g>
+<path d="M76 681H467V693H76Z" fill="#ddc29a"/>
+<path d="M0 723Q300 688 600 723" fill="none" stroke="#e5cfa5" stroke-width="3" opacity=".6"/>
+<use href="#palm" transform="translate(517 736) scale(.8)"/><use href="#palm" transform="translate(75 735) scale(.56)"/><use href="#palm" transform="translate(418 723) scale(.45)"/>
+<g fill="#555037"><ellipse cx="20" cy="723" rx="90" ry="20"/><ellipse cx="600" cy="738" rx="100" ry="28"/></g>
+</g><g opacity=".22" filter="url(#blur)" fill="#4d4c2b"><ellipse cx="584" cy="40" rx="70" ry="100"/><ellipse cx="515" cy="-5" rx="60" ry="60"/><ellipse cx="40" cy="775" rx="80" ry="90"/></g>
+</svg>
