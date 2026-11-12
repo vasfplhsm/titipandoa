@@ -1387,7 +1387,7 @@ export default function App() {
 
         {/* TAB 2: PILGRIM DASHBOARD */}
         {}
-        {activeTab === 'dashboard' && (
+        {isOwner && activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-pink-100/80 shadow-sm">
               <div>
@@ -1612,7 +1612,7 @@ export default function App() {
 
         {/* TAB 3: UMRAH CHECKLIST */}
         {}
-        {activeTab === 'checklist' && (
+        {isOwner && activeTab === 'checklist' && (
           <div className="space-y-6 max-w-4xl mx-auto">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
@@ -1754,7 +1754,7 @@ export default function App() {
 
         {/* TAB 4: FLIGHT & ITINERARY PLANNER */}
         {}
-        {activeTab === 'itinerary' && (
+        {isOwner && activeTab === 'itinerary' && (
           <div className="space-y-6 max-w-5xl mx-auto">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -2066,7 +2066,7 @@ export default function App() {
 
         {/* TAB 5: TIMELINE VIEW */}
         {}
-        {activeTab === 'timeline' && (
+        {isOwner && activeTab === 'timeline' && (
           <div className="space-y-6 max-w-4xl mx-auto">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm">
               <span className="text-xs font-bold text-pink-600 uppercase tracking-widest">Personal Dashboard</span>
@@ -2112,7 +2112,7 @@ export default function App() {
 
         {/* TAB 6: FOCUS READER (MAKKAH MODE) */}
         {}
-        {activeTab === 'focus' && (
+        {isOwner && activeTab === 'focus' && (
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-pink-100 shadow-sm">
               <button
@@ -2236,7 +2236,7 @@ export default function App() {
         )}
 
         {/* TAB 7: EXPENSES TRACKER */}
-        {activeTab === 'expenses' && (
+        {isOwner && activeTab === 'expenses' && (
           <div className="space-y-6 max-w-5xl mx-auto">
             {/* Header */}
             <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
