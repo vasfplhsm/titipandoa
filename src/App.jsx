@@ -69,7 +69,7 @@ const INTRO_NOTE = [
   "Wassalamualaikum w.b.t.",
 ];
 
-const PUBLIC_URL = 'https://titipandoa.netlify.app/';
+const PUBLIC_URL = new URL('./', window.location.href).href;
 
 const CHECKLIST_CATEGORIES = [
   'Dokumen & Kewangan',
@@ -149,7 +149,7 @@ function libraryRoute() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() =>
-    libraryRoute().active ? 'collection' : 'home',
+    libraryRoute().active ? 'collection' : 'submission',
   ); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'expenses'
   const [tasbihFocus, setTasbihFocus] = useState(false);
   const [readingFocus, setReadingFocus] = useState(false);
@@ -279,6 +279,7 @@ export default function App() {
     }
   }
   function navigate(tab) {
+    if (tab === 'home' && !isOwner) tab = 'submission';
     setReadingFocus(false);
     if (tab === 'collection') {
       openLibraryEntry(null);
@@ -323,7 +324,7 @@ export default function App() {
 
   // Public visitors can submit doa and use their private tasbih.
   useEffect(() => {
-    if (!isOwner && !['home', 'submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab)) {
+    if (!isOwner && !['submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab)) {
       setActiveTab('submission');
     }
   }, [isOwner, activeTab]);
@@ -1208,7 +1209,7 @@ export default function App() {
       )}
 
       {/* Loading Overlay */}
-      {isLoading && !['home', 'submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
+      {isLoading && !['submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
         <div className="fixed inset-x-0 bottom-0 top-[70px] z-[60] bg-rose-50/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-200 animate-pulse">
             <Flower2 className="w-7 h-7 text-white fill-white/20" />
@@ -1409,7 +1410,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main id="main-content" className={`site-main flex-1 w-full mx-auto ${activeTab === 'home' ? 'is-home' : 'p-4 sm:p-6 md:p-8'}`}>
-        {activeTab === 'home' && (smallScreen ? <Dashboard navigate={navigate} onRead={openLibraryEntry} isOwner={isOwner} checklist={checklist} itinerary={itinerary} openOwner={openOwner} /> : <Home navigate={navigate} onReadEntry={openLibraryEntry} doas={doas} isOwner={isOwner} loading={isLoading} onAmin={incrementAmin} />)}
+        {isOwner && activeTab === 'home' && (smallScreen ? <Dashboard navigate={navigate} onRead={openLibraryEntry} isOwner={isOwner} checklist={checklist} itinerary={itinerary} openOwner={openOwner} /> : <Home navigate={navigate} onReadEntry={openLibraryEntry} doas={doas} isOwner={isOwner} loading={isLoading} onAmin={incrementAmin} />)}
         {['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} />}
         {activeTab === 'offline' && <OfflinePanel />}
         {libraryVisited && <div hidden={activeTab !== 'collection'}><DoaLibrary entryId={readingRoute.entryId} guideId={readingRoute.guideId} onOpenEntry={openLibraryEntry} onOpenGuide={openLibraryGuide} onReadingChange={setReadingFocus} onTasbih={openTasbihEntry} /></div>}
@@ -1616,7 +1617,7 @@ export default function App() {
 
         {/* TAB 2: PILGRIM DASHBOARD */}
         {}
-        {activeTab === 'dashboard' && (
+        {isOwner && activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-pink-100/80 shadow-sm">
               <div>
@@ -1841,7 +1842,7 @@ export default function App() {
 
         {/* TAB 3: UMRAH CHECKLIST */}
         {}
-        {activeTab === 'checklist' && (
+        {isOwner && activeTab === 'checklist' && (
           <div className="space-y-6 max-w-4xl mx-auto">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
@@ -1984,7 +1985,7 @@ export default function App() {
 
         {/* TAB 4: FLIGHT & ITINERARY PLANNER */}
         {}
-        {activeTab === 'itinerary' && (
+        {isOwner && activeTab === 'itinerary' && (
           <div className="space-y-6 max-w-5xl mx-auto">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -2298,7 +2299,7 @@ export default function App() {
 
         {/* TAB 5: TIMELINE VIEW */}
         {}
-        {activeTab === 'timeline' && (
+        {isOwner && activeTab === 'timeline' && (
           <div className="space-y-6 max-w-4xl mx-auto">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-pink-100 shadow-sm">
               <span className="text-xs font-bold text-pink-600 uppercase tracking-widest">Personal Dashboard</span>
@@ -2344,7 +2345,7 @@ export default function App() {
 
         {/* TAB 6: FOCUS READER (MAKKAH MODE) */}
         {}
-        {activeTab === 'focus' && (
+        {isOwner && activeTab === 'focus' && (
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-pink-100 shadow-sm">
               <button
@@ -2468,8 +2469,8 @@ export default function App() {
         )}
 
         {/* TAB 7: EXPENSES TRACKER */}
-        {activeTab === 'expenses' && !connected && <div className="offline-notice" role="status">Perbelanjaan dan bajet tidak dimuat turun pada peranti ini. Buka semula dalam talian untuk melihat data server.</div>}
-        {activeTab === 'expenses' && connected && (
+        {isOwner && activeTab === 'expenses' && !connected && <div className="offline-notice" role="status">Perbelanjaan dan bajet tidak dimuat turun pada peranti ini. Buka semula dalam talian untuk melihat data server.</div>}
+        {isOwner && activeTab === 'expenses' && connected && (
           <div className="space-y-6 max-w-5xl mx-auto">
             {/* Header */}
             <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden">
@@ -2982,7 +2983,7 @@ export default function App() {
         )}
       </main>
 
-      <BottomNavigation active={activeTab === 'collection' && readingRoute.guideId ? 'zikrhub' : activeTab} navigate={navigate} hidden={tasbihFocus || readingFocus} />
+      <BottomNavigation isOwner={isOwner} active={activeTab === 'collection' && readingRoute.guideId ? 'zikrhub' : activeTab} navigate={navigate} hidden={tasbihFocus || readingFocus} />
       <footer hidden={tasbihFocus || readingFocus} className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500 space-y-2">
         <p className="font-medium text-pink-700">Titipan Doa — "Titipkan doa, iringi perjalanan ke Tanah Suci."</p>
         <p className="opacity-70">© 2026 Titipan Doa Platform. Dikhaskan buat {pilgrimName}.</p>
