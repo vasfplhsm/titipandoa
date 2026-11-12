@@ -30,6 +30,10 @@
   --text-secondary: #75676a;
   --card: #fffcf7;
   --border: #ebd9c2;
+  --button-soft: #f3e1e5;
+  --button-soft-hover: #ead0d8;
+  --button-border: #b37b8d;
+  --button-ink: #702e46;
   --white: #ffffff;
   --heading: "Cormorant Garamond", Georgia, serif;
   --body: Inter, Arial, sans-serif;
@@ -99,6 +103,10 @@ body {
   --cream: #302127;
   --card: #33232a;
   --border: #62424a;
+  --button-soft: #563340;
+  --button-soft-hover: #66404f;
+  --button-border: #a9788c;
+  --button-ink: #ffe9c2;
   --text: #fff4e6;
   --text-secondary: #d0bbb9;
   --color-slate-50: #302127;
@@ -238,7 +246,8 @@ body {
   align-items: center;
   gap: 8px;
   min-height: 38px;
-  border: 1px solid #f6d98c9c;
+  border: 1px solid #f6d98cc7;
+  background: #fff9ef14;
   border-radius: 24px;
   padding: 8px 14px;
   font-size: 11px;
@@ -331,8 +340,9 @@ body {
   box-shadow: 0 8px 16px #72263d15;
 }
 .button-outline {
-  background: var(--card);
-  color: var(--burgundy);
+  background: var(--button-soft);
+  border-color: var(--button-border);
+  color: var(--button-ink);
 }
 .button-primary:hover,
 .button-outline:hover,

@@ -92,7 +92,7 @@
   gap: 16px;
   text-align: left;
   padding: 24px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--button-border);
   border-radius: 18px;
   background: var(--card);
   color: var(--text);
@@ -101,7 +101,7 @@
 .hub-grid > button > svg {
   margin-left: auto;
   flex-shrink: 0;
-  color: var(--burgundy);
+  color: var(--button-ink);
 }
 .hub-icon {
   display: grid;
@@ -109,8 +109,8 @@
   width: 50px;
   min-width: 50px;
   height: 50px;
-  background: var(--cream);
-  color: var(--burgundy);
+  background: var(--button-soft);
+  color: var(--button-ink);
   border-radius: 14px;
 }
 .hub-grid strong {
@@ -301,10 +301,28 @@
   min-height: 82px;
   font-size: 12px;
   padding: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--button-soft);
+  border: 1px solid var(--button-border);
   border-radius: 14px;
-  color: var(--burgundy);
+  color: var(--button-ink);
+  font-weight: 600;
+}
+.dashboard-quick-actions > button,
+.widget-link,
+.hub-grid > button {
+  transition: background-color 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+@media (hover: hover) {
+  .dashboard-quick-actions > button:hover,
+  .widget-link:hover,
+  .hub-grid > button:hover,
+  .button-outline:hover {
+    background: var(--button-soft-hover);
+    border-color: var(--button-ink);
+  }
+  .widget-counter-row > button:hover {
+    background: #ffe6a4;
+  }
 }
 .owner-titipan-summary {
   display: flex;
@@ -410,7 +428,12 @@
   align-items: center;
   gap: 9px;
   font-size: 12px;
-  color: var(--burgundy);
+  color: var(--button-ink);
+  background: var(--button-soft);
+  border: 1px solid var(--button-border);
+  border-radius: 10px;
+  padding: 0 12px;
+  font-weight: 600;
   min-height: 44px;
 }
 .app-widget progress {
@@ -447,7 +470,8 @@
   margin-top: 4px;
 }
 .widget-counter-row > button {
-  border: 1px solid #f4d77b88;
+  background: var(--butter);
+  border: 1px solid var(--butter);
   border-radius: 50%;
   width: 48px;
   height: 48px;
@@ -455,7 +479,7 @@
   display: grid;
   place-items: center;
   font-size: 27px;
-  color: var(--butter);
+  color: var(--burgundy-dark);
 }
 .tasbih-widget progress {
   accent-color: var(--butter);
@@ -544,13 +568,16 @@
     font-size: 10px;
     min-height: 52px;
     border-radius: 13px;
+    border: 1px solid transparent;
     color: var(--text-secondary);
   }
   .bottom-navigation button[aria-current="page"] {
-    background: var(--cream);
-    color: var(--burgundy);
+    background: var(--burgundy);
+    color: #fff9ef;
+    border-color: var(--button-border);
   }
   .bottom-navigation button[aria-current="page"] svg {
+    color: var(--butter);
     stroke-width: 2;
   }
   .offline-chrome {
