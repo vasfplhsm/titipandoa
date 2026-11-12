@@ -148,8 +148,13 @@ function libraryRoute() {
 }
 
 export default function App() {
+  // Owner access is restored only from a previously unlocked session.
+  const [isOwner, setIsOwner] = useState(() => {
+    try { return localStorage.getItem('titipandoa_owner_authenticated') === 'true'; }
+    catch { return false; }
+  });
   const [activeTab, setActiveTab] = useState(() =>
-    libraryRoute().active ? 'collection' : 'submission',
+    isOwner && libraryRoute().active ? 'collection' : 'submission',
   ); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'expenses'
   const [tasbihFocus, setTasbihFocus] = useState(false);
   const [readingFocus, setReadingFocus] = useState(false);
@@ -224,15 +229,23 @@ export default function App() {
     }
   }
 
-  const [readingRoute, setReadingRoute] = useState(libraryRoute);
+  const [readingRoute, setReadingRoute] = useState(() =>
+    isOwner ? libraryRoute() : { entryId: null, guideId: null, active: false },
+  );
   const [libraryVisited, setLibraryVisited] = useState(
-    () => libraryRoute().active,
+    () => isOwner && libraryRoute().active,
   );
   const [tasbihRequest, setTasbihRequest] = useState(null);
   const tasbihRequestId = useRef(0);
   useEffect(() => {
     function syncRoute() {
       const route = libraryRoute();
+      if (!isOwner) {
+        if (route.active) history.replaceState(null, '', window.location.pathname + window.location.search);
+        setActiveTab('submission');
+        setReadingFocus(false);
+        return;
+      }
       setReadingRoute(route);
       if (route.active) {
         setActiveTab('collection');
@@ -240,10 +253,12 @@ export default function App() {
       }
       setReadingFocus(false);
     }
+    if (!isOwner) syncRoute();
     window.addEventListener('hashchange', syncRoute);
     return () => window.removeEventListener('hashchange', syncRoute);
-  }, []);
+  }, [isOwner]);
   function openLibraryEntry(id) {
+    if (!isOwner) return navigate('submission');
     setLibraryVisited(true);
     window.location.assign(id ? `#doa/${id}` : '#collection');
     setReadingFocus(false);
@@ -252,6 +267,7 @@ export default function App() {
     window.scrollTo(0, 0);
   }
   function openLibraryGuide(id) {
+    if (!isOwner) return navigate('submission');
     setLibraryVisited(true);
     window.location.assign(`#panduan/${id}`);
     setReadingRoute({ entryId: null, guideId: id, active: true });
@@ -259,6 +275,7 @@ export default function App() {
     window.scrollTo(0, 0);
   }
   function openTasbihEntry(entry) {
+    if (!isOwner) return navigate('submission');
     setTasbihRequest({ entry, nonce: ++tasbihRequestId.current });
     navigate('tasbih');
   }
@@ -279,7 +296,7 @@ export default function App() {
     }
   }
   function navigate(tab) {
-    if (tab === 'home' && !isOwner) tab = 'submission';
+    if (!isOwner) tab = 'submission';
     setReadingFocus(false);
     if (tab === 'collection') {
       openLibraryEntry(null);
@@ -299,32 +316,22 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [pilgrimName] = useState('Syahidah Zulkafli');
   
-  // Access Control: Owner (Syahidah) vs Public Visitor
-  const [isOwner, setIsOwner] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    let stored = null;
-    try { stored = localStorage.getItem('titipandoa_owner_authenticated'); } catch { /* Private storage may be unavailable. */ }
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true' || window.location.hash === '#owner') {
-      return true;
-    }
-    return stored === 'true';
-  });
-
   const [ownerPin, setOwnerPin] = useState(() => {
     if (typeof window === 'undefined') return '1234';
     try { return localStorage.getItem('titipandoa_owner_pin') || '1234'; } catch { return '1234'; }
   });
 
-  const [showPinModal, setShowPinModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(() => !isOwner && (
+    new URLSearchParams(window.location.search).get('admin') === 'true' || window.location.hash === '#owner'
+  ));
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [newPinInput, setNewPinInput] = useState('');
 
-  // Public visitors can submit doa and use their private tasbih.
+  // Public visitors can only read the introduction and submit doa.
   useEffect(() => {
-    if (!isOwner && !['submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab)) {
+    if (!isOwner && activeTab !== 'submission') {
       setActiveTab('submission');
     }
   }, [isOwner, activeTab]);
@@ -876,7 +883,9 @@ export default function App() {
         setDoas(prev => prev.some(row => row.id === stableId) ? prev : [{...newDoa,id:stableId},...prev]);
         setIsSubmitted(true); await remove('drafts','doa-submission');
         showToast('Titipan doa disahkan oleh server. Jazakallah Khair.');
-      } else showToast('Titipan disimpan pada peranti; belum disahkan server. Semak Perubahan Belum Disegerakkan.');
+      } else showToast(isOwner
+        ? 'Titipan disimpan pada peranti; belum disahkan server. Semak Perubahan Belum Disegerakkan.'
+        : 'Titipan disimpan pada peranti; belum disahkan server. Pesanan akan dihantar secara automatik apabila sambungan kembali.');
     } catch (error) { showToast(error.message || 'Pesanan belum dapat disimpan. Jangan tutup halaman ini.'); }
   };
 
@@ -996,9 +1005,15 @@ export default function App() {
   const handleLock = () => {
     setIsOwner(false);
     localStorage.removeItem('titipandoa_owner_authenticated');
-    if (window.location.search.includes('admin=') || window.location.hash === '#owner') {
+    if (window.location.search.includes('admin=') || window.location.hash) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+    setTasbihFocus(false);
+    setReadingFocus(false);
+    setLibraryVisited(false);
+    setReadingRoute({ entryId: null, guideId: null, active: false });
+    setShowForm(false);
+    setIsSubmitted(false);
     setActiveTab('submission');
     showToast('Mod Awam diaktifkan. Pengguna lain hanya dapat melihat Borang Titipan Doa 🔒');
   };
@@ -1198,7 +1213,7 @@ export default function App() {
   }, [flights, itinerary]);
 
   return (
-    <div className="td-app min-h-screen font-sans flex flex-col" data-theme={siteTheme}>
+    <div className="td-app min-h-screen font-sans flex flex-col" data-theme={siteTheme} data-owner={isOwner}>
       <a className="skip-link" href="#main-content">Langkau ke kandungan</a>
       {/* Toast Notification */}
       {toastMessage && (
@@ -1209,7 +1224,7 @@ export default function App() {
       )}
 
       {/* Loading Overlay */}
-      {isLoading && !['submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
+      {isOwner && isLoading && !['submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
         <div className="fixed inset-x-0 bottom-0 top-[70px] z-[60] bg-rose-50/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-200 animate-pulse">
             <Flower2 className="w-7 h-7 text-white fill-white/20" />
@@ -1222,7 +1237,7 @@ export default function App() {
       <SiteHeader activeTab={activeTab} navigate={navigate} theme={siteTheme} toggleTheme={toggleSiteTheme}
         isOwner={isOwner} hidden={tasbihFocus || readingFocus}
         openOwner={openOwner} />
-      <OfflineChrome navigate={navigate} hidden={tasbihFocus || readingFocus} saveBeforeUpdate={saveBeforeUpdate} />
+      {isOwner && <OfflineChrome navigate={navigate} hidden={tasbihFocus || readingFocus} saveBeforeUpdate={saveBeforeUpdate} />}
       {/* Header Bar */}
       <header hidden={tasbihFocus || readingFocus || !isOwner} className="owner-toolbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2.5 flex items-center justify-between gap-3 lg:gap-4">
@@ -1411,15 +1426,15 @@ export default function App() {
       {/* Main Content Area */}
       <main id="main-content" className={`site-main flex-1 w-full mx-auto ${activeTab === 'home' ? 'is-home' : 'p-4 sm:p-6 md:p-8'}`}>
         {isOwner && activeTab === 'home' && (smallScreen ? <Dashboard navigate={navigate} onRead={openLibraryEntry} isOwner={isOwner} checklist={checklist} itinerary={itinerary} openOwner={openOwner} /> : <Home navigate={navigate} onReadEntry={openLibraryEntry} doas={doas} isOwner={isOwner} loading={isLoading} onAmin={incrementAmin} />)}
-        {['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} />}
-        {activeTab === 'offline' && <OfflinePanel />}
-        {libraryVisited && <div hidden={activeTab !== 'collection'}><DoaLibrary entryId={readingRoute.entryId} guideId={readingRoute.guideId} onOpenEntry={openLibraryEntry} onOpenGuide={openLibraryGuide} onReadingChange={setReadingFocus} onTasbih={openTasbihEntry} /></div>}
-        {activeTab === 'about' && <About />}
+        {isOwner && ['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} />}
+        {isOwner && activeTab === 'offline' && <OfflinePanel />}
+        {isOwner && libraryVisited && <div hidden={activeTab !== 'collection'}><DoaLibrary entryId={readingRoute.entryId} guideId={readingRoute.guideId} onOpenEntry={openLibraryEntry} onOpenGuide={openLibraryGuide} onReadingChange={setReadingFocus} onTasbih={openTasbihEntry} /></div>}
+        {isOwner && activeTab === 'about' && <About />}
 
         {/* TAB 1: PUBLIC SUBMISSION FORM VIEW */}
         {}
-        <div hidden={activeTab !== 'tasbih'}><Tasbih libraryRequest={tasbihRequest} onFocusChange={setTasbihFocus} onBack={() => navigate('home')} /></div>
-        {activeTab === 'submission' && (
+        {isOwner && <div hidden={activeTab !== 'tasbih'}><Tasbih libraryRequest={tasbihRequest} onFocusChange={setTasbihFocus} onBack={() => navigate('home')} /></div>}
+        {(!isOwner || activeTab === 'submission') && (
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-pink-600 via-rose-700 to-rose-950 text-white p-6 sm:p-8 shadow-xl shadow-pink-200/50">
               <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 rounded-full bg-pink-400/20 blur-3xl"></div>
@@ -2983,7 +2998,7 @@ export default function App() {
         )}
       </main>
 
-      <BottomNavigation isOwner={isOwner} active={activeTab === 'collection' && readingRoute.guideId ? 'zikrhub' : activeTab} navigate={navigate} hidden={tasbihFocus || readingFocus} />
+      {isOwner && <BottomNavigation isOwner={isOwner} active={activeTab === 'collection' && readingRoute.guideId ? 'zikrhub' : activeTab} navigate={navigate} hidden={tasbihFocus || readingFocus} />}
       <footer hidden={tasbihFocus || readingFocus} className="bg-white border-t border-pink-100 py-6 mt-12 text-center text-xs text-slate-500 space-y-2">
         <p className="font-medium text-pink-700">Titipan Doa — "Titipkan doa, iringi perjalanan ke Tanah Suci."</p>
         <p className="opacity-70">© 2026 Titipan Doa Platform. Dikhaskan buat {pilgrimName}.</p>
@@ -3044,9 +3059,6 @@ export default function App() {
                 {pinError && (
                   <p className="text-xs text-rose-600 font-semibold mt-1.5 text-center">{pinError}</p>
                 )}
-                <p className="text-[11px] text-slate-400 text-center mt-2">
-                  (PIN lalai: <span className="font-mono font-bold text-slate-600">1234</span>)
-                </p>
               </div>
 
               <div className="flex gap-2">

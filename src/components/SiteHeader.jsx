@@ -37,13 +37,13 @@ export default function SiteHeader({
   openOwner,
   hidden,
 }) {
-  const links = [
-    ...(isOwner ? [["home", "Utama", House]] : []),
+  const links = isOwner ? [
+    ["home", "Utama", House],
     ["submission", "Titip Doa", FileText],
     ["collection", "Doa & Zikir", BookOpen],
     ["tasbih", "Tasbih Digital", CircleDot],
     ["about", "Tentang Kami", Info],
-  ];
+  ] : [["submission", "Titip Doa", FileText]];
   return (
     <header className="site-header" hidden={hidden}>
       <button
@@ -67,7 +67,7 @@ export default function SiteHeader({
         ))}
       </nav>
       <div className="site-actions">
-        <button
+        {isOwner && <button
           className="site-theme"
           aria-label={
             theme === "dark" ? "Gunakan tema cerah" : "Gunakan tema gelap"
@@ -75,7 +75,7 @@ export default function SiteHeader({
           onClick={toggleTheme}
         >
           {theme === "dark" ? <Moon size={21} /> : <Sun size={21} />}
-        </button>
+        </button>}
         <button
           className="site-account"
           aria-label={isOwner ? "Ruang Jemaah" : "Akses Jemaah"}
