@@ -11,9 +11,9 @@ import {
   Info,
   Download,
 } from "lucide-react";
-export function BottomNavigation({ active, navigate, hidden }) {
+export function BottomNavigation({ active, navigate, hidden, isOwner }) {
   const entries = [
-    ["home", "Utama", House],
+    ...(isOwner ? [["home", "Utama", House]] : []),
     ["doahub", "Doa", BookOpen],
     ["zikrhub", "Zikir", CircleDot],
     ["umrahhub", "Umrah", Compass],
@@ -39,6 +39,7 @@ export function BottomNavigation({ active, navigate, hidden }) {
     <nav
       hidden={hidden}
       className="bottom-navigation"
+      style={{ gridTemplateColumns: `repeat(${entries.length}, minmax(0, 1fr))` }}
       aria-label="Navigasi aplikasi"
     >
       {entries.map(([id, title, Icon]) => (

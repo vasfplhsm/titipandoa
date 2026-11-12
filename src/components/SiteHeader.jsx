@@ -38,7 +38,7 @@ export default function SiteHeader({
   hidden,
 }) {
   const links = [
-    ["home", "Utama", House],
+    ...(isOwner ? [["home", "Utama", House]] : []),
     ["submission", "Titip Doa", FileText],
     ["collection", "Doa & Zikir", BookOpen],
     ["tasbih", "Tasbih Digital", CircleDot],
@@ -48,8 +48,8 @@ export default function SiteHeader({
     <header className="site-header" hidden={hidden}>
       <button
         className="site-brand"
-        onClick={() => navigate("home")}
-        aria-label="Utama — Titipan Doa"
+        onClick={() => navigate(isOwner ? "home" : "submission")}
+        aria-label="Titipan Doa"
       >
         <ArchMark />
         <span>Titipan Doa</span>
