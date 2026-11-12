@@ -1,6 +1,6 @@
 /* Build substitutes a content-derived revision and only same-origin public files. */
-const VERSION = "6bc421060bb8dc2d";
-const FILES = ["assets/index-DnTtoV67.js","assets/index-gcyyoieK.css","assets/xlsx-BKER4Xe2.js","favicon.svg","fonts/README.md","fonts/amiri-OFL.txt","fonts/amiri.woff2","fonts/cormorant-OFL.txt","fonts/cormorant-garamond.woff2","fonts/inter-OFL.txt","fonts/inter.woff2","icons.svg","icons/apple-touch-icon.png","icons/icon-192.png","icons/icon-512.png","icons/icon-maskable.png","icons/icon.svg","images/LICENSE.md","images/mosque-sunset.svg","images/rosette.svg","index.html","manifest.webmanifest"];
+const VERSION = "5654ba460cbd5992";
+const FILES = ["assets/index-BX9pJeNI.css","assets/index-ehBeiy1D.js","assets/xlsx-BKER4Xe2.js","favicon.svg","fonts/README.md","fonts/amiri-OFL.txt","fonts/amiri.woff2","fonts/cormorant-OFL.txt","fonts/cormorant-garamond.woff2","fonts/inter-OFL.txt","fonts/inter.woff2","icons.svg","icons/apple-touch-icon.png","icons/icon-192.png","icons/icon-512.png","icons/icon-maskable.png","icons/icon.svg","images/LICENSE.md","images/mosque-sunset.svg","images/rosette.svg","index.html","manifest.webmanifest"];
 const ROOT = new URL("./", self.location.href);
 const PREFIX = "titipandoa-shell-" + ROOT.pathname.replaceAll("/", "_") + "-";
 const CACHE = PREFIX + VERSION;
