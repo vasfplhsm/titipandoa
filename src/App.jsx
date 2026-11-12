@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { supabase } from './supabaseClient';
 import Tasbih from './tasbih/Tasbih';
 import SiteHeader from './components/SiteHeader';
-import Home from './components/Home';
 import { About } from './components/DoaCollection';
 import DoaLibrary from './library/DoaLibrary';
 import './design.css';
@@ -37,7 +36,6 @@ import {
   ShieldCheck,
   Plus,
   Flower2,
-  Crown,
   Calendar,
   Plane,
   Clock,
@@ -154,7 +152,7 @@ export default function App() {
     catch { return false; }
   });
   const [activeTab, setActiveTab] = useState(() =>
-    isOwner && libraryRoute().active ? 'collection' : 'submission',
+    isOwner ? (libraryRoute().active ? 'collection' : 'home') : 'submission',
   ); // 'submission', 'dashboard', 'checklist', 'itinerary', 'timeline', 'focus', 'expenses'
   const [tasbihFocus, setTasbihFocus] = useState(false);
   const [readingFocus, setReadingFocus] = useState(false);
@@ -168,13 +166,7 @@ export default function App() {
       window.removeEventListener('offline', changed);
     };
   }, []);
-  const [smallScreen, setSmallScreen] = useState(
-    () => window.matchMedia('(max-width:700px)').matches,
-  );
   useEffect(() => {
-    const media = window.matchMedia('(max-width:700px)');
-    const changed = () => setSmallScreen(media.matches);
-    media.addEventListener('change', changed);
     const keyboard = () =>
       document.documentElement.classList.toggle(
         'pwa-keyboard-open',
@@ -183,7 +175,6 @@ export default function App() {
       );
     window.visualViewport?.addEventListener('resize', keyboard);
     return () => {
-      media.removeEventListener('change', changed);
       window.visualViewport?.removeEventListener('resize', keyboard);
     };
   }, []);
@@ -995,7 +986,7 @@ export default function App() {
       setShowPinModal(false);
       setPinInput('');
       setPinError('');
-      setActiveTab('dashboard');
+      setActiveTab('home');
       showToast(`Selamat kembali, ${pilgrimName}! Akses Jemaah telah dibuka 🌸`);
     } else {
       setPinError('PIN salah. Sila cuba lagi.');
@@ -1224,7 +1215,7 @@ export default function App() {
       )}
 
       {/* Loading Overlay */}
-      {isOwner && isLoading && !['submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
+      {isOwner && isLoading && !['home', 'submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'umrahhub', 'more', 'offline'].includes(activeTab) && (
         <div className="fixed inset-x-0 bottom-0 top-[70px] z-[60] bg-rose-50/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-pink-200 animate-pulse">
             <Flower2 className="w-7 h-7 text-white fill-white/20" />
@@ -1236,197 +1227,12 @@ export default function App() {
 
       <SiteHeader activeTab={activeTab} navigate={navigate} theme={siteTheme} toggleTheme={toggleSiteTheme}
         isOwner={isOwner} hidden={tasbihFocus || readingFocus}
-        openOwner={openOwner} />
+        openOwner={openOwner} onLock={handleLock} />
       {isOwner && <OfflineChrome navigate={navigate} hidden={tasbihFocus || readingFocus} saveBeforeUpdate={saveBeforeUpdate} />}
-      {/* Header Bar */}
-      <header hidden={tasbihFocus || readingFocus || !isOwner} className="owner-toolbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-pink-100 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2.5 flex items-center justify-between gap-3 lg:gap-4">
-          {/* Brand Logo & Pilgrim Name */}
-          <div 
-            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer shrink-0" 
-            onClick={() => setActiveTab('submission')}
-          >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-200 shrink-0">
-              <Flower2 className="w-5 h-5 fill-white/20" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent whitespace-nowrap">
-                  Titipan Doa
-                </span>
-                <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap hidden sm:inline">
-                  {pilgrimName}
-                </span>
-                {isOwner && (
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-bold whitespace-nowrap flex items-center gap-1">
-                    <Crown className="w-3 h-3 text-emerald-600" /> Mod Jemaah
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-pink-500 font-medium hidden 2xl:block whitespace-nowrap leading-none mt-0.5">
-                Titipkan doa, iringi perjalanan ke Tanah Suci.
-              </p>
-            </div>
-          </div>
-
-          {/* Navigation Tabs (Desktop) - Only Visible to Owner */}
-          {isOwner && (
-            <nav className="hidden lg:flex items-center gap-1 bg-pink-50/60 p-1.5 rounded-2xl border border-pink-100 text-xs font-semibold shrink-0">
-              <button
-                onClick={() => setActiveTab('submission')}
-                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                  activeTab === 'submission' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Borang Titipan
-              </button>
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                  activeTab === 'dashboard' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Koleksi Doa
-              </button>
-              <button
-                onClick={() => setActiveTab('checklist')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === 'checklist' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <ListTodo className="w-3.5 h-3.5 shrink-0" /> Checklist
-              </button>
-              <button
-                onClick={() => setActiveTab('itinerary')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === 'itinerary' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5 shrink-0" /> Itinerary
-              </button>
-              <button
-                onClick={() => setActiveTab('timeline')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === 'timeline' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Compass className="w-3.5 h-3.5 shrink-0" /> Timeline
-              </button>
-              <button
-                onClick={() => setActiveTab('focus')}
-                className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                  activeTab === 'focus' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Focus Reader
-              </button>
-              <button
-                onClick={() => setActiveTab('expenses')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  activeTab === 'expenses' ? 'bg-white text-pink-700 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Wallet className="w-3.5 h-3.5 shrink-0" /> Perbelanjaan
-              </button>
-            </nav>
-          )}
-
-          {/* Right Action Button */}
-          <div className="flex items-center gap-2 shrink-0">
-            {isOwner ? (
-              <>
-                <button
-                  onClick={handleLock}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition border border-slate-200"
-                  title="Kunci sesi & uji mod awam"
-                >
-                  <Lock className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="hidden sm:inline">Kunci / Mod Awam</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('focus')}
-                  className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 transition shadow-md shadow-pink-200 shrink-0 whitespace-nowrap"
-                >
-                  <BookOpen className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">Makkah Reader</span>
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => {
-                  setPinError('');
-                  setPinInput('');
-                  setShowPinModal(true);
-                }}
-                className="px-3.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 text-xs font-semibold flex items-center gap-1.5 transition border border-pink-200/80 shadow-xs active:scale-95"
-                title="Log masuk untuk pemilik doa"
-              >
-                <Lock className="w-3.5 h-3.5 text-pink-500" />
-                <span>Akses Jemaah</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Mobile Navigation Bar - Only for Owner */}
-        {isOwner && (
-          <div className="lg:hidden flex border-t border-pink-100 bg-white px-2 py-2 overflow-x-auto gap-1">
-            <button
-              onClick={() => setActiveTab('submission')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                activeTab === 'submission' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-              }`}
-            >
-              Borang Titipan
-            </button>
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                activeTab === 'dashboard' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-              }`}
-            >
-              Doa Hub
-            </button>
-            <button
-              onClick={() => setActiveTab('checklist')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                activeTab === 'checklist' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-              }`}
-            >
-              Checklist ({stats.checklistPercent}%)
-            </button>
-            <button
-              onClick={() => setActiveTab('itinerary')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                activeTab === 'itinerary' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-              }`}
-            >
-              Calendar & Flights
-            </button>
-            <button
-              onClick={() => setActiveTab('timeline')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                activeTab === 'timeline' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-              }`}
-            >
-              Timeline
-            </button>
-            <button
-              onClick={() => setActiveTab('expenses')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1 ${
-                activeTab === 'expenses' ? 'bg-pink-100 text-pink-800' : 'text-slate-600'
-              }`}
-            >
-              <Wallet className="w-3 h-3" /> Belanja
-            </button>
-          </div>
-        )}
-      </header>
-
       {/* Main Content Area */}
       <main id="main-content" className={`site-main flex-1 w-full mx-auto ${activeTab === 'home' ? 'is-home' : 'p-4 sm:p-6 md:p-8'}`}>
-        {isOwner && activeTab === 'home' && (smallScreen ? <Dashboard navigate={navigate} onRead={openLibraryEntry} isOwner={isOwner} checklist={checklist} itinerary={itinerary} openOwner={openOwner} /> : <Home navigate={navigate} onReadEntry={openLibraryEntry} doas={doas} isOwner={isOwner} loading={isLoading} onAmin={incrementAmin} />)}
-        {isOwner && ['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} />}
+        {isOwner && activeTab === 'home' && <Dashboard navigate={navigate} onRead={openLibraryEntry} isOwner={isOwner} checklist={checklist} itinerary={itinerary} openOwner={openOwner} pilgrimName={pilgrimName} doas={doas} loading={isLoading} onShare={handleCopyLink} />}
+        {isOwner && ['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} onChangePin={() => setShowChangePinModal(true)} />}
         {isOwner && activeTab === 'offline' && <OfflinePanel />}
         {isOwner && libraryVisited && <div hidden={activeTab !== 'collection'}><DoaLibrary entryId={readingRoute.entryId} guideId={readingRoute.guideId} onOpenEntry={openLibraryEntry} onOpenGuide={openLibraryGuide} onReadingChange={setReadingFocus} onTasbih={openTasbihEntry} /></div>}
         {isOwner && activeTab === 'about' && <About />}
@@ -1636,8 +1442,8 @@ export default function App() {
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-pink-100/80 shadow-sm">
               <div>
-                <span className="text-xs font-bold text-pink-600 tracking-wider uppercase">Pilgrim Dashboard</span>
-                <h1 className="text-2xl font-extrabold text-slate-800">Selamat Datang, {pilgrimName} 🌸</h1>
+                <span className="text-xs font-bold text-pink-600 tracking-wider uppercase">TITIPAN UNTUK DIBACA DI TANAH SUCI</span>
+                <h1 className="text-2xl font-extrabold text-slate-800">Titipan Doa Anda</h1>
                 <p className="text-xs text-pink-600 italic font-serif mt-0.5">
                   "Titipkan doa, iringi perjalanan ke Tanah Suci."
                 </p>
@@ -1650,7 +1456,7 @@ export default function App() {
                   </div>
                   <div className="truncate">
                     <span className="block text-[10px] text-pink-700 font-semibold uppercase">Pautan Titipan Doa Anda</span>
-                    <span className="text-xs font-mono text-slate-700 truncate">https://titipandoa.netlify.app/</span>
+                    <span className="text-xs font-mono text-slate-700 truncate">{PUBLIC_URL}</span>
                   </div>
                 </div>
                 <button
@@ -1659,39 +1465,6 @@ export default function App() {
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   {copiedLink ? 'Disalin' : 'Salin'}
-                </button>
-              </div>
-            </div>
-
-            {/* Privacy & Security Status Banner */}
-            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-pink-50 border border-emerald-200/80 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-800 flex items-center gap-1.5">
-                    Mod Jemaah Aktif (Privasi Terkawal)
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Dilindungi PIN</span>
-                  </p>
-                  <p className="text-slate-600 text-[11px] mt-0.5">
-                    Hanya anda yang boleh melihat Koleksi Doa, Checklist & Itinerary. Orang lain yang membuka pautan hanya dapat melihat Borang Titipan Doa.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-                <button
-                  onClick={() => setShowChangePinModal(true)}
-                  className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition shadow-2xs"
-                >
-                  Tukar PIN
-                </button>
-                <button
-                  onClick={handleLock}
-                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-2xs"
-                  title="Kunci sesi dan kembali ke mod awam"
-                >
-                  <Lock className="w-3 h-3" /> Kunci Sesi
                 </button>
               </div>
             </div>

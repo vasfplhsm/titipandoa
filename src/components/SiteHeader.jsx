@@ -1,13 +1,10 @@
 import {
-  House,
   FileText,
-  CircleDot,
-  Info,
-  BookOpen,
   Sun,
   Moon,
   LockKeyhole,
 } from "lucide-react";
+import { OWNER_NAVIGATION, ownerSection } from "./navigation.js";
 
 export function ArchMark({ className = "" }) {
   return (
@@ -35,15 +32,11 @@ export default function SiteHeader({
   toggleTheme,
   isOwner,
   openOwner,
+  onLock,
   hidden,
 }) {
-  const links = isOwner ? [
-    ["home", "Utama", House],
-    ["submission", "Titip Doa", FileText],
-    ["collection", "Doa & Zikir", BookOpen],
-    ["tasbih", "Tasbih Digital", CircleDot],
-    ["about", "Tentang Kami", Info],
-  ] : [["submission", "Titip Doa", FileText]];
+  const links = isOwner ? OWNER_NAVIGATION : [["submission", "Titip Doa", FileText]];
+  const selected = isOwner ? ownerSection(activeTab) : "submission";
   return (
     <header className="site-header" hidden={hidden}>
       <button
@@ -58,7 +51,7 @@ export default function SiteHeader({
         {links.map(([id, label, Icon]) => (
           <button
             key={id}
-            aria-current={activeTab === id ? "page" : undefined}
+            aria-current={selected === id ? "page" : undefined}
             onClick={() => navigate(id)}
           >
             <Icon size={16} strokeWidth={1.6} />
@@ -78,11 +71,12 @@ export default function SiteHeader({
         </button>}
         <button
           className="site-account"
-          aria-label={isOwner ? "Ruang Jemaah" : "Akses Jemaah"}
-          onClick={openOwner}
+          aria-label={isOwner ? "Kunci / Mod Awam" : "Akses Jemaah"}
+          title={isOwner ? "Kunci sesi dan buka paparan pelawat" : "Log masuk pemilik"}
+          onClick={isOwner ? onLock : openOwner}
         >
           <LockKeyhole size={15} />
-          <span>{isOwner ? "Ruang Jemaah" : "Akses Jemaah"}</span>
+          <span>{isOwner ? "Kunci / Mod Awam" : "Akses Jemaah"}</span>
         </button>
       </div>
     </header>

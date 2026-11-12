@@ -264,15 +264,18 @@
   padding: 5px 0;
 }
 .app-dashboard {
-  padding: 26px 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 32px;
 }
 .dashboard-greeting {
   margin: 0 0 24px;
 }
 .dashboard-greeting h1 {
-  font-size: 43px;
+  font-size: clamp(34px, 5vw, 48px);
   font-weight: 600;
-  line-height: 1.05;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
   margin: 8px 0;
 }
 .dashboard-greeting > p:last-child {
@@ -296,11 +299,47 @@
   flex-direction: column;
   gap: 10px;
   min-height: 82px;
-  font-size: 10px;
+  font-size: 12px;
+  padding: 12px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
   color: var(--burgundy);
+}
+.owner-titipan-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--card);
+}
+.owner-titipan-summary .widget-label {
+  margin-bottom: 10px;
+}
+.owner-titipan-summary h2 {
+  font-size: 32px;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+.owner-titipan-summary p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.owner-titipan-summary .button-primary {
+  flex-shrink: 0;
+  font-family: var(--body);
+  font-size: 13px;
+}
+@media (min-width: 901px) {
+  .app-dashboard .dashboard-widgets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dashboard-widgets .app-widget.expanded {
+    grid-column: auto;
+  }
 }
 .dashboard-widgets {
   display: grid;
@@ -458,6 +497,15 @@
   accent-color: var(--burgundy);
 }
 @media (max-width: 700px) {
+  .app-dashboard {
+    padding: 26px 20px;
+  }
+  .owner-titipan-summary {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 22px;
+    gap: 18px;
+  }
   .td-app[data-owner="false"] {
     padding-bottom: 0;
   }
@@ -520,13 +568,6 @@
   .offline-chrome .pwa-update {
     font-size: 12px;
     line-height: 1.6;
-  }
-  .owner-toolbar {
-    top: 66px !important;
-  }
-  .owner-toolbar > div:first-child {
-    padding-left: 12px;
-    padding-right: 12px;
   }
   .hub-grid {
     grid-template-columns: 1fr;
@@ -612,9 +653,6 @@
     min-height: 44px;
     min-width: 44px;
   }
-  .td-app .owner-toolbar[hidden] {
-    display: none;
-  }
   .td-app footer {
     margin-bottom: 8px;
   }
@@ -656,9 +694,6 @@
   .td-app input,
   .td-app textarea {
     min-width: 0;
-  }
-  .td-app .owner-toolbar {
-    top: calc(66px + env(safe-area-inset-top)) !important;
   }
 }
 @media (max-width: 700px) {

@@ -1,40 +1,22 @@
 import {
-  House,
   BookOpen,
   CircleDot,
   Compass,
-  Ellipsis,
   ArrowRight,
   Calendar,
   ListTodo,
   Wallet,
   Info,
   Download,
+  LockKeyhole,
+  FileText,
 } from "lucide-react";
+import { OWNER_NAVIGATION, ownerSection } from "../components/navigation.js";
+
 export function BottomNavigation({ active, navigate, hidden, isOwner }) {
-  const entries = [
-    ...(isOwner ? [["home", "Utama", House]] : []),
-    ["doahub", "Doa", BookOpen],
-    ["zikrhub", "Zikir", CircleDot],
-    ["umrahhub", "Umrah", Compass],
-    ["more", "Lain-lain", Ellipsis],
-  ];
-  const selected = ["submission", "collection", "doahub"].includes(active)
-    ? "doahub"
-    : ["tasbih", "zikrhub"].includes(active)
-      ? "zikrhub"
-      : ["checklist", "itinerary", "timeline", "umrahhub"].includes(active)
-        ? "umrahhub"
-        : [
-              "expenses",
-              "offline",
-              "more",
-              "about",
-              "dashboard",
-              "focus",
-            ].includes(active)
-          ? "more"
-          : "home";
+  if (!isOwner) return null;
+  const entries = OWNER_NAVIGATION;
+  const selected = ownerSection(active);
   return (
     <nav
       hidden={hidden}
@@ -56,32 +38,44 @@ export function BottomNavigation({ active, navigate, hidden, isOwner }) {
     </nav>
   );
 }
-export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide }) {
+export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide, onChangePin }) {
   const data =
     kind === "doahub"
       ? {
-          title: "Doa untuk setiap langkah",
-          eyebrow: "RUANG PENGHARAPAN",
+          title: "Titipan doa untuk anda",
+          eyebrow: "AMANAH KELUARGA & SAHABAT",
           items: [
             [
-              "submission",
-              "Titip Doa",
-              "Titipkan pesanan kepada jemaah.",
+              "dashboard",
+              "Titipan Diterima",
+              "Baca, tandakan dan urus doa yang dititipkan kepada anda.",
               BookOpen,
             ],
             [
-              "collection",
-              "Koleksi Doa & Zikrullah",
-              "54 bacaan dengan rujukan, kegemaran dan carian.",
+              "focus",
+              "Pembaca Doa",
+              "Baca titipan satu demi satu dalam mod fokus.",
               BookOpen,
+            ],
+            [
+              "submission",
+              "Borang Titipan",
+              "Buka borang untuk menambah titipan doa.",
+              FileText,
             ],
           ],
         }
       : kind === "zikrhub"
         ? {
-            title: "Tenang bersama zikir",
-            eyebrow: "PERLAHAN DI JARI, DEKAT DI HATI",
+            title: "Doa & ibadah harian",
+            eyebrow: "RUANG TENANG ANDA",
             items: [
+              [
+                "collection",
+                "Koleksi Doa & Zikrullah",
+                "54 bacaan dengan rujukan, kegemaran dan carian.",
+                BookOpen,
+              ],
               [
                 "tasbih",
                 "Tasbih Digital",
@@ -151,16 +145,10 @@ export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide }) {
                   Wallet,
                 ],
                 [
-                  "dashboard",
-                  "Ruang Jemaah",
-                  "Urus titipan doa yang diterima.",
-                  BookOpen,
-                ],
-                [
-                  "focus",
-                  "Pembaca Doa",
-                  "Bacaan titipan dalam mod fokus.",
-                  BookOpen,
+                  "change-pin",
+                  "Tukar PIN",
+                  "Urus PIN untuk membuka ruang peribadi anda.",
+                  LockKeyhole,
                 ],
                 ["about", "Tentang Kami", "Kenali Titipan Doa.", Info],
               ],
@@ -176,20 +164,12 @@ export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide }) {
           <button
             aria-label={title}
             key={id}
-            onClick={() =>
-              ["pagi", "petang", "solat"].includes(id)
-                ? openGuide(id)
-                : [
-                      "itinerary",
-                      "checklist",
-                      "timeline",
-                      "expenses",
-                      "dashboard",
-                      "focus",
-                    ].includes(id) && !isOwner
-                  ? openOwner()
-                  : navigate(id)
-            }
+            onClick={() => {
+              if (!isOwner) return openOwner();
+              if (id === "change-pin") return onChangePin();
+              if (["pagi", "petang", "solat"].includes(id)) return openGuide(id);
+              navigate(id);
+            }}
           >
             <span className="hub-icon">
               <Icon size={24} />

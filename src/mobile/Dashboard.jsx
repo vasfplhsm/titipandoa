@@ -4,7 +4,8 @@ import {
   BookOpen,
   CircleDot,
   Calendar,
-  CheckCircle,
+  Share2,
+  Mail,
 } from "lucide-react";
 import { dailyEntry } from "../library/model.js";
 import { KEY, restore, initial, ZIKR, advance, MAX } from "../tasbih/model.js";
@@ -197,6 +198,10 @@ export default function Dashboard({
   checklist,
   itinerary,
   openOwner,
+  pilgrimName,
+  doas,
+  loading,
+  onShare,
 }) {
   const [hidden, setHidden] = useState(() => {
     try {
@@ -208,10 +213,20 @@ export default function Dashboard({
   return (
     <section className="app-dashboard">
       <header className="dashboard-greeting">
-        <p className="eyebrow">TEMAN HARIAN & PERJALANAN ANDA</p>
-        <h1>Assalamualaikum</h1>
-        <p>Semoga hari ini dipenuhi ketenangan.</p>
+        <p className="eyebrow">RUANG PERIBADI ANDA</p>
+        <h1>Assalamualaikum, {pilgrimName.split(' ')[0]}.</h1>
+        <p>Titipan doa, ibadah dan persiapan Umrah anda di satu tempat.</p>
       </header>
+      <section className="owner-titipan-summary" aria-label="Ringkasan titipan doa">
+        <div>
+          <span className="widget-label"><Mail size={17} /> TITIPAN DOA ANDA</span>
+          <h2>{loading ? 'Memuatkan titipan…' : `${doas.filter(doa => !doa.is_read).length} doa belum dibaca`}</h2>
+          <p>{loading ? 'Sebentar lagi.' : `${doas.length} titipan daripada keluarga dan sahabat.`}</p>
+        </div>
+        <button className="button-primary" onClick={() => navigate('dashboard')}>
+          Buka titipan <ArrowRight size={18} />
+        </button>
+      </section>
       <div className="dashboard-quick-actions">
         <button onClick={() => navigate("collection")}>
           <BookOpen size={18} />
@@ -221,9 +236,9 @@ export default function Dashboard({
           <CircleDot size={18} />
           Mulakan Zikir
         </button>
-        <button onClick={() => navigate("offline")}>
-          <CheckCircle size={18} />
-          Sediakan Offline
+        <button onClick={onShare}>
+          <Share2 size={18} />
+          Kongsi Pautan Titipan
         </button>
       </div>
       <div className="dashboard-widgets">
