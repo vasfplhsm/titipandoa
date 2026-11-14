@@ -69,3 +69,28 @@ test("public share links retain root or Pages subpath and remove owner query/fra
     "https://example.com/",
   );
 });
+
+test("public theme defaults are allowlisted and compatible with older profiles", () => {
+  assert.equal(cleanProfile({}).public_theme, "rosewood");
+  assert.equal(cleanProfile({}).public_appearance, "light");
+  assert.equal(
+    cleanProfile({ public_theme: "sage", public_appearance: "system" })
+      .public_theme,
+    "sage",
+  );
+  assert.equal(
+    cleanProfile({ public_theme: "coastal", public_appearance: "dark" })
+      .public_appearance,
+    "dark",
+  );
+  assert.equal(
+    cleanProfile({ public_theme: "custom-css", public_appearance: "inverted" })
+      .public_theme,
+    "rosewood",
+  );
+  assert.equal(
+    cleanProfile({ public_theme: null, public_appearance: 5 })
+      .public_appearance,
+    "light",
+  );
+});

@@ -111,4 +111,4 @@ new devotional prescriptions are claimed by counting.
 - Verify deep links open the correct host prayer and the website's `/titipandoa/`
   hash route. Do not rely on an automatic Safari/PWA storage bridge.
 
-The rebrand retains all bundle identifiers and widget kinds. The host includes an original Sage & Sand AppIcon asset and displays “Tumpang Doa”. Rebuild/reinstall with Xcode to update an existing installation; native compilation and device rendering remain unverified here.
+The rebrand retains all bundle identifiers and widget kinds. The host includes an original Rosewood & Champagne AppIcon asset and displays “Tumpang Doa”. Rebuild/reinstall with Xcode to update an existing installation; native compilation and device rendering remain unverified here.

@@ -1,3 +1,5 @@
+> Superseded for homepage and themes by [the original announcement/theme upgrade](THEMES_AND_ANNOUNCEMENT.md). The complete original letter is restored, and Rosewood is now the default. Security and data-preservation prerequisites below still apply.
+
 # Tumpang Doa redesign — review and rollout
 
 Implemented on `feat/tumpang-doa-rebrand`, based on the existing offline PWA branch

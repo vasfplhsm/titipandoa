@@ -1,3 +1,4 @@
+const { clickDestination } = require("./navigation.cjs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 const assert = require("node:assert/strict");
 const url = process.env.TASBIH_TEST_URL || "http://127.0.0.1:4177/titipandoa/";
@@ -106,9 +107,9 @@ const token = {
           Object.assign(row, body);
           return reply([{ id: row.id, is_read: row.is_read }]);
         }
-        if (table === "tumpangdoa_public_profile") {
+        if (table === "tumpangdoa_public_profile" && method === "PATCH") {
           profile = { ...profile, ...body };
-          return reply(null, 201);
+          return reply(profile);
         }
         return r.abort();
       });
@@ -122,9 +123,10 @@ const token = {
     p.on("dialog", (d) => d.accept());
     await p.goto(url);
     await p
-      .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
+      .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
       .waitFor();
     assert.equal(await p.locator(".bottom-navigation").isVisible(), false);
+    assert.equal(await p.locator(".prayer-form").count(), 0);
     assert.equal(reads.includes("doas"), false);
     assert.equal(
       await p.getByText("Private sender 0", { exact: true }).count(),
@@ -142,13 +144,17 @@ const token = {
     await p.setViewportSize({ width: 390, height: 844 });
     await p.getByRole("button", { name: "Gunakan tema gelap" }).click();
     await p.reload();
-    await p.locator(".prayer-form").waitFor();
+    await p
+      .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
+      .waitFor();
+    assert.equal(await p.locator(".prayer-form").count(), 0);
     assert.equal(await p.locator(".td-app").getAttribute("data-theme"), "dark");
     await p.screenshot({
       path: "/tmp/tumpang-dark-mobile.png",
       fullPage: true,
     });
     await p.getByRole("button", { name: "Gunakan tema cerah" }).click();
+    await clickDestination(p, "Titip Doa");
     await p.getByText("Tak pasti nak tulis apa?", { exact: true }).click();
     await p.getByRole("button", { name: "Gunakan sebagai draf" }).click();
     assert((await p.locator("#prayer-message").inputValue()).length > 0);
@@ -183,9 +189,8 @@ const token = {
       0,
     );
     await p.getByRole("button", { name: "Cuba semula", exact: true }).click();
-    await p
-      .getByRole("button", { name: "Utama — Tumpang Doa", exact: true })
-      .click();
+    await clickDestination(p, "Utama");
+    await p.getByRole("button", { name: "Tumpang Doa", exact: true }).click();
     await p
       .getByRole("heading", {
         name: "Alhamdulillah, doa anda telah diterima.",
@@ -199,6 +204,12 @@ const token = {
     assert.equal(submits[0].body.id, submits[1].body.id);
     await p.getByRole("button", { name: "Hantar Doa Lain" }).click();
     assert.equal(await p.locator("#prayer-message").inputValue(), "");
+    await clickDestination(p, "Utama");
+    await p
+      .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
+      .waitFor();
+    await p.getByText("Wassalamualaikum w.b.t.", { exact: true }).waitFor();
+    assert.equal(await p.locator(".prayer-form").count(), 0);
     await p.evaluate(() =>
       localStorage.setItem("titipandoa_owner_authenticated", "true"),
     );
@@ -259,9 +270,14 @@ const token = {
     await op.goto(url + "#owner");
     await op.locator(".prayer-inbox article").first().waitFor();
     assert.equal(await op.locator(".prayer-inbox article").count(), 4);
-    await op.setViewportSize({width:320,height:844});
-    assert(await op.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'owner inbox overflow 320');
-    await op.setViewportSize({width:390,height:844});
+    await op.setViewportSize({ width: 320, height: 844 });
+    assert(
+      await op.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      "owner inbox overflow 320",
+    );
+    await op.setViewportSize({ width: 390, height: 844 });
     await op
       .getByRole("button", { name: "Tandakan Sudah Dibaca", exact: true })
       .first()

@@ -1,4 +1,5 @@
 import { Sun, Moon } from "lucide-react";
+import { useTheme } from "../theme/ThemeProvider";
 export function ArchMark({ className = "" }) {
   return (
     <svg
@@ -21,12 +22,9 @@ export function ArchMark({ className = "" }) {
     </svg>
   );
 }
-export default function SiteHeader({
-  navigate,
-  theme,
-  toggleTheme,
-  hidden,
-}) {
+export default function SiteHeader({ navigate, hidden }) {
+  const { resolvedAppearance: theme, setAppearance } = useTheme();
+  const toggleTheme = () => setAppearance(theme === "dark" ? "light" : "dark");
   return (
     <header className="site-header" hidden={hidden}>
       <button
@@ -50,7 +48,6 @@ export default function SiteHeader({
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-
       </div>
     </header>
   );

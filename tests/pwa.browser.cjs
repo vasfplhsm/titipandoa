@@ -139,7 +139,7 @@ async function until(check) {
   p.on("dialog", (d) => d.accept());
   await p.goto(url);
   await p
-    .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
+    .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
     .waitFor();
   await p.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -186,7 +186,7 @@ async function until(check) {
   p.on("dialog", (d) => d.accept());
   await p.goto(url);
   await p
-    .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
+    .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
     .waitFor();
   await clickDestination(p, "Tasbih Digital");
   assert.equal(await p.locator(".tasbih-count").innerText(), "37");

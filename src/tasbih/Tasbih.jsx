@@ -21,8 +21,10 @@ import {
   libraryTasbihId,
 } from "./model";
 import "./tasbih.css";
+import {useTheme} from "../theme/ThemeProvider";
 
 export default function Tasbih({ onFocusChange, onBack, libraryRequest }) {
+  const {appearance,resolvedAppearance,setAppearance}=useTheme();
   const [storageError, setStorageError] = useState(() => {
     try {
       const raw = readPersisted(KEY);
@@ -274,7 +276,7 @@ export default function Tasbih({ onFocusChange, onBack, libraryRequest }) {
   return (
     <section
       className={`tasbih ${focus ? "tasbih-focus" : ""}`}
-      data-theme={state.settings.theme}
+      data-theme={resolvedAppearance}
       aria-label="Tasbih Digital"
     >
       <header className="tasbih-topbar">
@@ -416,8 +418,8 @@ export default function Tasbih({ onFocusChange, onBack, libraryRequest }) {
           <label>
             Tema
             <select
-              value={state.settings.theme}
-              onChange={(e) => setting("theme", e.target.value)}
+              value={appearance}
+              onChange={(e) => {setting("theme", e.target.value);setAppearance(e.target.value);}}
             >
               <option value="light">Cerah</option>
               <option value="dark">Gelap</option>

@@ -1,5 +1,6 @@
 import { get, put } from "./db.js";
 const mapping = {
+  "titipandoa.palette": "preferences",
   "titipandoa.reader.resume": "preferences",
   "titipandoa.reader.size": "preferences",
   "titipandoa.tasbih.v1": "tasbih",

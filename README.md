@@ -5,7 +5,7 @@ invitation is simple and account-free; the verified owner has a prayer inbox,
 resumable reading mode, private trip planning, the reviewed doa/zikir library and
 persistent Digital Tasbih. Installable PWA and native widget source are retained.
 
-**Before deployment:** read [the redesign and backend rollout guide](docs/TUMPANG_DOA_REBRAND.md).
+**Before deployment:** read [the announcement/theme guide](docs/THEMES_AND_ANNOUNCEMENT.md) and [backend rollout guide](docs/TUMPANG_DOA_REBRAND.md).
 Production RLS could not be verified here. No SQL is executed automatically.
 
 ## Development
@@ -30,7 +30,8 @@ npm run build
 npm run preview -- --port 4177 --base /titipandoa/
 ```
 
-`npm test` checks the 54-entry content audit, library/Tasbih models, IndexedDB queue
+`npm test` locks the original announcement and checks six theme variants, public
+preferences, the 54-entry content audit, library/Tasbih models, IndexedDB queue
 transactions and native bundled-content equality. The native equality check does
 not compile Swift. Browser suites use separately installed Playwright/Chromium,
 with remote requests mocked/blocked so tests do not alter real records:
@@ -41,6 +42,8 @@ PLAYWRIGHT_MODULE=/path/to/playwright TASBIH_TEST_URL=http://127.0.0.1:4177/titi
 PLAYWRIGHT_MODULE=/path/to/playwright TASBIH_TEST_URL=http://127.0.0.1:4177/titipandoa/ node tests/tasbih.browser.cjs
 PLAYWRIGHT_MODULE=/path/to/playwright TASBIH_TEST_URL=http://127.0.0.1:4177/titipandoa/ node tests/redesign.browser.cjs
 PLAYWRIGHT_MODULE=/path/to/playwright TASBIH_TEST_URL=http://127.0.0.1:4177/titipandoa/ node tests/pwa-update.browser.cjs
+PLAYWRIGHT_MODULE=/path/to/playwright TASBIH_TEST_URL=http://127.0.0.1:4177/titipandoa/ node tests/themes.browser.cjs
+PLAYWRIGHT_MODULE=/path/to/playwright TASBIH_TEST_URL=http://127.0.0.1:4177/titipandoa/ node tests/settings-hydration.browser.cjs
 ```
 
 The update suite temporarily changes only the generated `dist/sw.js`, restoring it
@@ -50,8 +53,11 @@ an application dependency; fake-indexeddb is a small test-only dev dependency.
 
 ## Features and data
 
-- Sage & Sand light/dark design with centralized tokens and locally hosted fonts.
-  The public homepage centres on “Ada doa nak dikirim?” and an optional-name form.
+- Three centralized themes: Rosewood & Champagne (default), Sage & Sand, and
+  Coastal Serenity; each supports light, dark and device-following appearance.
+  The complete original 11-paragraph Umrah message appears before the invitation;
+  the optional-name form opens only after selecting Tumpang Doa. Owner settings
+  separate persistent local appearance from explicitly published visitor defaults.
 - Verified owner inbox, search/category/read filters, date sorting, explicit read/undo,
   resumable large-type reading mode, configurable public announcement and dates,
   WhatsApp/native sharing and safe copy links. Private planning and educational
@@ -115,7 +121,9 @@ religious text or nonfunctional audio control is used.
 | --- | --- |
 | src/App.jsx | Existing app orchestration, online features, routing and data hydration |
 | src/components | Shared navigation/desktop hero, private community cards, About |
-| src/rebrand | Public journey, owner inbox/reader/settings/auth, semantic tokens and model tests |
+| src/content | Immutable original personal announcement and regression |
+| src/theme | Palette/context/selector, shared appearance and contrast tests |
+| src/rebrand | Announcement-first journey, owner inbox/reader/settings/auth |
 | src/design.css | Compatibility styles for retained components |
 | src/mobile | Bottom navigation, feature hubs and compact/expanded dashboard widgets |
 | src/library | Reviewed catalogue, reading/search/guides/sharing and daily selection |

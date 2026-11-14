@@ -15,6 +15,9 @@ import { filterPrayers, publicURL, cleanProfile, CATEGORIES } from "./model";
 import { readPersisted, savePersisted } from "../offline/persistence";
 import { supabase } from "../supabaseClient";
 import { verifiedOwner } from "../offline/sync";
+import { useTheme } from "../theme/ThemeProvider";
+import ThemeSelector from "../theme/ThemeSelector";
+import { THEMES_BY_ID } from "../theme/model";
 export function OwnerInbox({ rows, onRead, navigate, onLogout, onError }) {
   const [query, setQuery] = useState(""),
     [category, setCategory] = useState(""),
@@ -285,30 +288,107 @@ export function PrayerReader({
   );
 }
 export function OwnerSettings({ profile, onSaved, onError, flights }) {
-  const [draft, setDraft] = useState(profile),
-    [busy, setBusy] = useState(false),
+  const { palette, appearance } = useTheme();
+  const [publishing, setPublishing] = useState(false);
+  const [themeNotice, setThemeNotice] = useState("");
+  async function publishTheme() {
+    setPublishing(true);
+    setThemeNotice("");
+    try {
+      if (!navigator.onLine || !(await verifiedOwner()))
+        throw Error("Sahkan akaun pemilik dalam talian dahulu.");
+      const settings = cleanProfile({
+        public_theme: palette,
+        public_appearance: appearance,
+      });
+      const { data, error } = await supabase
+        .from("tumpangdoa_public_profile")
+        .update({
+          public_theme: settings.public_theme,
+          public_appearance: settings.public_appearance,
+        })
+        .eq("id", "default")
+        .select("*")
+        .single();
+      if (
+        error ||
+        !data ||
+        data.public_theme !== settings.public_theme ||
+        data.public_appearance !== settings.public_appearance
+      )
+        throw Error(
+          "Tema awam belum disimpan. Pastikan migrasi tema awam yang disemak telah dipasang dan akses pemilik disahkan.",
+        );
+      await onSaved(cleanProfile(data));
+      setThemeNotice(
+        "Tema awam disahkan dan disimpan. Pelawat baharu akan melihat pilihan ini.",
+      );
+    } catch (error) {
+      setThemeNotice(error.message);
+      onError(error.message);
+    } finally {
+      setPublishing(false);
+    }
+  }
+  // Read untouched fields from the latest hydrated profile rather than freezing
+  // the initial defaults. Only intentional form edits are stored locally.
+  const [edits, setEdits] = useState({});
+  const draft = { ...cleanProfile(profile), ...edits };
+  const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
   const url = publicURL(window.location),
     text = `${draft.sharing_text}\n\n${url}`;
   function change(key, value) {
-    setDraft((p) => ({ ...p, [key]: value }));
+    setEdits((p) => ({ ...p, [key]: value }));
   }
   async function save(e) {
     e.preventDefault();
+    const submittedEdits = { ...edits };
+    const submittedProfile = { ...cleanProfile(profile), ...submittedEdits };
     setBusy(true);
     setNotice("");
     try {
       if (!navigator.onLine || !(await verifiedOwner()))
         throw Error("Sahkan akaun pemilik dalam talian dahulu.");
-      const value = cleanProfile(draft);
-      const { error } = await supabase
+      const value = cleanProfile(submittedProfile);
+      // Theme publication is an explicit, separate owner action. Send only edited
+      // fields so late hydration or another device's untouched values stay intact.
+      delete value.public_theme;
+      delete value.public_appearance;
+      const changes = Object.fromEntries(
+        Object.keys(submittedEdits)
+          .filter((key) => Object.hasOwn(value, key))
+          .map((key) => [key, value[key]]),
+      );
+      if (!Object.keys(changes).length) {
+        setNotice("Tiada perubahan untuk disimpan.");
+        return;
+      }
+      const { data, error } = await supabase
         .from("tumpangdoa_public_profile")
-        .upsert({ id: "default", ...value });
-      if (error)
+        .update(changes)
+        .eq("id", "default")
+        .select("*")
+        .single();
+      if (
+        error ||
+        !data ||
+        Object.entries(changes).some(([key, value]) => data[key] !== value)
+      )
         throw Error(
           "Tetapan belum disimpan. Pastikan migrasi profil awam yang disemak telah dipasang.",
         );
-      await onSaved(value);
+      await onSaved(cleanProfile(data));
+      // Keep any newer edits made while the request was in flight.
+      setEdits((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(
+            ([key, value]) =>
+              !Object.hasOwn(submittedEdits, key) ||
+              value !== submittedEdits[key],
+          ),
+        ),
+      );
       setNotice("Tetapan disahkan dan disimpan.");
     } catch (e) {
       onError(e.message);
@@ -372,8 +452,41 @@ export function OwnerSettings({ profile, onSaved, onError, flights }) {
           Pratonton WhatsApp bergantung pada hos dan cache aplikasi.
         </small>
       </section>
+      <ThemeSelector />
+      <section
+        className="share-panel public-theme-settings"
+        aria-labelledby="public-theme-heading"
+      >
+        <h3 id="public-theme-heading">Tema untuk pelawat</h3>
+        <p>
+          Tema awam semasa:{" "}
+          {THEMES_BY_ID[profile.public_theme || "rosewood"]?.name ||
+            "Rosewood & Champagne"}
+          ,{" "}
+          {
+            { light: "Cerah", dark: "Gelap", system: "Ikut tetapan peranti" }[
+              profile.public_appearance || "light"
+            ]
+          }
+          . Pilihan paparan pada peranti ini kekal setempat sehingga anda
+          menyimpannya sebagai tema awam.
+        </p>
+        <button
+          type="button"
+          className="secondary"
+          disabled={publishing || busy}
+          onClick={publishTheme}
+        >
+          {publishing ? "Menyimpan tema awam…" : "Jadikan tema awam"}
+        </button>
+        {themeNotice && <p role="status">{themeNotice}</p>}
+      </section>
       <form onSubmit={save}>
         <Settings size={22} />
+        <p>
+          Pengumuman asal dikekalkan sepenuhnya. Pesanan peribadi ini dipaparkan
+          sebagai tambahan selepasnya.
+        </p>
         {[
           ["display_name", "Nama paparan jemaah"],
           ["announcement", "Pesanan peribadi"],
@@ -423,7 +536,7 @@ export function OwnerSettings({ profile, onSaved, onError, flights }) {
           Maklumat dalam tetapan ini dipaparkan kepada pelawat. Jangan masukkan
           nombor penerbangan, kewangan atau catatan peribadi.
         </p>
-        <button className="primary" disabled={busy}>
+        <button className="primary" disabled={busy || publishing}>
           {busy ? "Menyimpan…" : "Simpan Tetapan"}
         </button>
       </form>

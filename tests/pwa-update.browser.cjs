@@ -22,7 +22,7 @@ const url = process.env.TASBIH_TEST_URL || "http://127.0.0.1:4177/titipandoa/";
     p.on("dialog", (d) => d.accept());
     await p.goto(url);
     await p
-      .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
+      .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
       .waitFor();
     await p.evaluate(async () => {
       await navigator.serviceWorker.ready;
@@ -99,7 +99,7 @@ const url = process.env.TASBIH_TEST_URL || "http://127.0.0.1:4177/titipandoa/";
     );
     await p.getByRole("button", { name: "Kemas kini dengan selamat" }).click();
     await p
-      .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
+      .getByRole("heading", { name: "Assalamualaikum w.b.t.", exact: true })
       .waitFor({ timeout: 30000 });
     await clickDestination(p, "Titip Doa");
     assert.equal(

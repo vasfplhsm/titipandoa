@@ -2,8 +2,8 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 
-private let burgundy = Color(red: 73/255, green: 99/255, blue: 86/255)
-private let butter = Color(red: 182/255, green: 199/255, blue: 178/255)
+private let burgundy = Color(red: 113/255, green: 63/255, blue: 75/255)
+private let butter = Color(red: 215/255, green: 180/255, blue: 106/255)
 
 enum ZikrChoice: String, CaseIterable, AppEnum {
     case subhanallah, alhamdulillah, allahuakbar, istighfar

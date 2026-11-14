@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient';
 import Tasbih from './tasbih/Tasbih';
 import SiteHeader from './components/SiteHeader';
 import PublicJourney from './rebrand/PublicJourney';
+import { INTRO_NOTE } from './content/intro-note';
+import { ThemeProvider, useTheme } from './theme/ThemeProvider';
 import {OwnerInbox, PrayerReader, OwnerSettings, OwnerSignIn} from './rebrand/OwnerWorkspace';
 import {DEFAULT_PROFILE, cleanProfile, validatePrayer} from './rebrand/model';
 import { About } from './components/DoaCollection';
@@ -15,9 +17,10 @@ import OfflineChrome from './offline/Chrome';
 import { flushPersistence } from './offline/persistence.js';
 import './mobile/mobile.css';
 import './rebrand/rebrand.css';
+import './rebrand/announcement.css';
+import './theme/themes.css';
 import { get, put, remove, flushDatabase } from './offline/db.js';
 import { queueDoa, localPatch, synchronize, cachePrivate, overlayPending, startSyncTriggers, pendingOperations, syncIsActive, retryOperation, verifiedOwner } from './offline/sync.js';
-import { readPersisted, savePersisted } from './offline/persistence.js';
 import {Sparkles, Check, Trash2, Lock, Plus, Flower2, Calendar, Plane, Clock, MapPin, ListTodo, Edit3, X, Compass, FileText, DollarSign, TrendingUp, Download, PieChart, Wallet} from 'lucide-react';
 
 
@@ -56,6 +59,11 @@ function libraryRoute() {
   if (hash.startsWith('doa/')) return { entryId: hash.slice(4), guideId: null, active: true };
   if (hash.startsWith('panduan/')) return { entryId: null, guideId: hash.slice(8), active: true };
   return { entryId: null, guideId: null, active: hash === 'collection' };
+}
+
+function AppFrame({children}) {
+ const {palette,resolvedAppearance,themeStyle}=useTheme();
+ return <div className="td-app min-h-screen font-sans flex flex-col" data-palette={palette} data-theme={resolvedAppearance} style={themeStyle}>{children}</div>;
 }
 
 export default function App() {
@@ -101,6 +109,7 @@ export default function App() {
     if (syncIsActive() || (await pendingOperations()).length)
       throw new Error('Selesaikan perubahan tertunda sebelum mengemas kini.');
     if (
+      activeTab === 'settings' ||
       editingBudget ||
       editingSarWallet ||
       editingChecklistId ||
@@ -167,22 +176,6 @@ export default function App() {
     setTasbihRequest({ entry, nonce: ++tasbihRequestId.current });
     navigate('tasbih');
   }
-  const [siteTheme, setSiteTheme] = useState(() => {
-    try {
-      return readPersisted('titipandoa.theme') === 'dark' ? 'dark' : 'light';
-    } catch {
-      return 'light';
-    }
-  });
-  function toggleSiteTheme() {
-    const next = siteTheme === 'dark' ? 'light' : 'dark';
-    setSiteTheme(next);
-    try {
-      savePersisted('titipandoa.theme', next);
-    } catch {
-      /* Theme remains available in memory. */
-    }
-  }
   function navigate(tab) {
     setReadingFocus(false);
     if (tab === 'collection') {
@@ -202,6 +195,7 @@ export default function App() {
   const [doas, setDoas] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const profileRevision = useRef(0);
   const [submissionBusy, setSubmissionBusy] = useState(false);
   const submissionLock = useRef(false);
   const [submissionPending, setSubmissionPending] = useState(false);
@@ -215,13 +209,16 @@ export default function App() {
   }
   useEffect(()=>{
     let cancelled=false;
+    let loadRequest=0;
     async function load(){
+      const request=++loadRequest, revision=profileRevision.current;
+      const current=()=>!cancelled && request===loadRequest && revision===profileRevision.current;
       try {
         const cached=await get('publicContent','tumpangdoa-profile');
-        if(cached && !cancelled)setProfile(cleanProfile(cached.value));
+        if(cached && current())setProfile(cleanProfile(cached.value));
         if(supabase && navigator.onLine){
           const {data,error}=await supabase.from('tumpangdoa_public_profile').select('*').eq('id','default').maybeSingle();
-          if(!error&&data&&!cancelled){const value=cleanProfile(data);setProfile(value);await put('publicContent',{id:'tumpangdoa-profile',value});}
+          if(!error&&data&&current()){const value=cleanProfile(data);setProfile(value);await put('publicContent',{id:'tumpangdoa-profile',value});}
         }
       }catch{/* The welcoming default remains available offline. */}
     }
@@ -230,7 +227,7 @@ export default function App() {
   // Public visitors can submit doa and use their private tasbih.
   useEffect(() => {
     if (!isOwner && !['home', 'submission', 'tasbih', 'collection', 'about', 'doahub', 'zikrhub', 'offline'].includes(activeTab)) {
-      setActiveTab('submission');
+      setActiveTab('home');
     }
   }, [isOwner, activeTab]);
 
@@ -1013,7 +1010,7 @@ export default function App() {
   }, [flights, itinerary]);
 
   return (
-    <div className="td-app min-h-screen font-sans flex flex-col" data-theme={siteTheme}>
+    <ThemeProvider publicTheme={profile.public_theme} publicAppearance={profile.public_appearance}><AppFrame>
       <a className="skip-link" href="#main-content">Langkau ke kandungan</a>
       {/* Toast Notification */}
       {toastMessage && (
@@ -1034,15 +1031,15 @@ export default function App() {
         </div>
       )}
 
-      <SiteHeader activeTab={activeTab} navigate={navigate} theme={siteTheme} toggleTheme={toggleSiteTheme}
+      <SiteHeader activeTab={activeTab} navigate={navigate}
         isOwner={isOwner} hidden={tasbihFocus || readingFocus || activeTab === 'focus'}
         openOwner={openOwner} />
       <OfflineChrome publicMode={!isOwner} navigate={navigate} hidden={tasbihFocus || readingFocus || activeTab === 'focus'} saveBeforeUpdate={saveBeforeUpdate} />
       {isOwner && activeTab!=='focus' && <nav className="owner-navigation" aria-label="Ruang jemaah">{[['dashboard','Senarai Doa'],['focus','Mod Bacaan'],['umrahhub','Perjalanan'],['collection','Doa & Zikir'],['tasbih','Tasbih'],['settings','Tetapan']].map(([id,label])=><button key={id} aria-current={activeTab===id?'page':undefined} onClick={()=>navigate(id)}>{label}</button>)}</nav>}
       {/* Main Content Area */}
       <main id="main-content" className={`site-main flex-1 w-full mx-auto ${activeTab === 'home' ? 'is-home' : 'p-4 sm:p-6 md:p-8'}`}>
-        {['home','submission'].includes(activeTab) && <PublicJourney profile={profile} senderName={senderName} setSenderName={setSenderName} category={category} setCategory={setCategory} message={message} setMessage={setMessage} onSubmit={handleDoaSubmit} submitted={isSubmitted} onReset={handleResetForm} navigate={navigate} busy={submissionBusy} pending={submissionPending} error={submissionError}/>}
-        {activeTab==='settings' && isOwner && <OwnerSettings profile={profile} flights={flights} onSaved={async value=>{setProfile(value);await put('publicContent',{id:'tumpangdoa-profile',value});}} onError={showToast}/>}
+        {['home','submission'].includes(activeTab) && <PublicJourney introNote={INTRO_NOTE} formOpen={activeTab==='submission'} profile={profile} senderName={senderName} setSenderName={setSenderName} category={category} setCategory={setCategory} message={message} setMessage={setMessage} onSubmit={handleDoaSubmit} submitted={isSubmitted} onReset={handleResetForm} navigate={navigate} busy={submissionBusy} pending={submissionPending} error={submissionError}/>}
+        {activeTab==='settings' && isOwner && <OwnerSettings profile={profile} flights={flights} onSaved={async value=>{profileRevision.current++;setProfile(value);await put('publicContent',{id:'tumpangdoa-profile',value});}} onError={showToast}/>}
         {['doahub','zikrhub','umrahhub','more'].includes(activeTab) && <FeatureHub kind={activeTab} navigate={navigate} isOwner={isOwner} openOwner={openOwner} openGuide={openLibraryGuide} departureDate={profile.departure_date || flights.departure.date} />}
         {activeTab === 'offline' && <OfflinePanel isOwner={isOwner} />}
         {libraryVisited && <div hidden={activeTab !== 'collection'}><DoaLibrary entryId={readingRoute.entryId} guideId={readingRoute.guideId} onOpenEntry={openLibraryEntry} onOpenGuide={openLibraryGuide} onReadingChange={setReadingFocus} onTasbih={openTasbihEntry} /></div>}
@@ -2093,6 +2090,6 @@ export default function App() {
       </footer>
 
       {showPinModal && <OwnerSignIn onClose={()=>setShowPinModal(false)} onVerified={acceptOwner}/>}
-    </div>
+    </AppFrame></ThemeProvider>
   );
 }

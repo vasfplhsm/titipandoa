@@ -17,11 +17,19 @@ export const DEFAULT_PROFILE = {
   return_date: "",
   accepting_submissions: true,
   sharing_text: ANNOUNCEMENT,
+  public_theme: "rosewood",
+  public_appearance: "light",
 };
 export function cleanProfile(value = {}) {
   const result = { ...DEFAULT_PROFILE };
   for (const key of Object.keys(result)) {
-    if (key === "accepting_submissions") {
+    if (key === "public_theme") {
+      if (["rosewood", "sage", "coastal"].includes(value[key]))
+        result[key] = value[key];
+    } else if (key === "public_appearance") {
+      if (["light", "dark", "system"].includes(value[key]))
+        result[key] = value[key];
+    } else if (key === "accepting_submissions") {
       if (typeof value[key] === "boolean") result[key] = value[key];
     } else if (typeof value[key] === "string")
       result[key] = value[key].slice(

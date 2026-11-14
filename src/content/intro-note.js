@@ -1,0 +1,15 @@
+// Original personal announcement, recovered verbatim from App.jsx at 797d178.
+// Do not rewrite, abbreviate, reorder, or replace with profile settings.
+export const INTRO_NOTE = Object.freeze([
+  "Assalamualaikum w.b.t.",
+  "Dengan penuh rasa syukur dan rendah hati, ingin saya khabarkan bahawa Insya-Allah pada 23 November 2026, saya akan berangkat ke Tanah Suci untuk mengerjakan ibadah umrah.",
+  "Sebelum kaki melangkah pergi, saya ingin mengambil kesempatan ini untuk memohon ampun dan maaf kepada semua sahabat, saudara-mara, jiran tetangga dan kenalan yang mengenali diri saya.",
+  "Sepanjang kita mengenali dan bergaul, mungkin ada kata-kata saya yang mengguris hati, perbuatan yang tidak menyenangkan, gurauan yang keterlaluan, atau salah dan silap saya yang saya sendiri tidak sedari. Dengan seikhlas hati, saya memohon maaf atas segala-galanya.",
+  "Jika ada yang terasa hati dengan saya, maafkanlah saya. Jika ada salah yang pernah saya lakukan, halalkanlah. Jika ada budi, pertolongan, makan minum dan apa jua yang pernah saya terima daripada kalian, saya juga memohon agar semuanya dihalalkan.",
+  "Perjalanan ke Tanah Suci ini merupakan satu amanah dan jemputan yang sangat saya syukuri. Saya sedar, banyak kekurangan diri dan masih banyak yang perlu diperbaiki. Oleh itu, saya sangat mengharapkan doa daripada kalian semua agar Allah SWT mempermudahkan setiap urusan saya, memberikan kesihatan dan kekuatan, melindungi saya sepanjang perjalanan, serta menerima segala ibadah yang saya lakukan.",
+  "Jika ada kesempatan di Tanah Suci nanti, Insya-Allah saya akan menitipkan doa buat kalian semua. Semoga Allah SWT mengurniakan kalian kesihatan yang baik, melapangkan rezeki, mempermudahkan segala urusan, mengurniakan ketenangan dalam kehidupan dan menjemput kalian juga menjadi tetamu-Nya pada waktu yang terbaik.",
+  "Akhir kata, maafkan segala salah dan silap saya, halalkan segala yang pernah saya terima, dan doakan perjalanan serta ibadah saya dipermudahkan.",
+  "Semoga selepas kepulangan nanti, saya kembali sebagai insan yang lebih baik, dengan hati yang lebih dekat kepada Allah SWT.",
+  "Mohon doa daripada kalian semua. 🤲🏻",
+  "Wassalamualaikum w.b.t.",
+]);

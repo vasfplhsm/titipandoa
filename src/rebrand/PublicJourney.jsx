@@ -1,13 +1,7 @@
-import { useState, useRef } from "react";
-import {
-  ArrowUpRight,
-  ArrowRight,
-  Check,
-  LockKeyhole,
-  Heart,
-  Send,
-} from "lucide-react";
-import { CATEGORIES } from "./model";
+import { useState, useRef, useEffect } from "react";
+import { ArrowRight, Check, LockKeyhole, Heart, Send } from "lucide-react";
+import { CATEGORIES, ANNOUNCEMENT } from "./model";
+import { INTRO_NOTE } from "../content/intro-note";
 const EXAMPLES = {
   Kesihatan:
     "Ya Allah, kurniakanlah kesembuhan dan kesihatan yang baik buat ibu bapa saya.",
@@ -23,6 +17,8 @@ const EXAMPLES = {
 };
 export default function PublicJourney({
   profile,
+  formOpen = false,
+  introNote = INTRO_NOTE,
   senderName,
   setSenderName,
   category,
@@ -38,15 +34,60 @@ export default function PublicJourney({
   error,
 }) {
   const form = useRef(null);
+  const heading = useRef(null);
   const [exampleCategory, setExampleCategory] = useState("Kesihatan");
-  function start() {
-    form.current?.scrollIntoView({
-      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
-    });
-    form.current?.querySelector("textarea")?.focus({ preventScroll: true });
-  }
+  useEffect(() => {
+    if (formOpen) heading.current?.focus({ preventScroll: true });
+  }, [formOpen, submitted]);
+  if (!formOpen)
+    return (
+      <div className="public-journey announcement-home">
+        <header className="invitation-welcome">
+          <span className="welcome-mark" aria-hidden="true">
+            <Heart size={22} strokeWidth={1.25} />
+          </span>
+          <span className="kicker">SEUNTAI DOA, DIBAWA BERSAMA.</span>
+          <h1>Assalamualaikum w.b.t.</h1>
+          <p>Sebuah pesanan sebelum menuju Tanah Suci.</p>
+        </header>
+        <article
+          className="original-announcement"
+          aria-label="Pengumuman Umrah asal"
+        >
+          {introNote.map((paragraph, index) => (
+            <p data-intro-paragraph={index + 1} key={index}>
+              {paragraph}
+            </p>
+          ))}
+        </article>
+        {profile.announcement && profile.announcement !== ANNOUNCEMENT && (
+          <aside className="additional-announcement">
+            <span className="kicker">
+              PESANAN TAMBAHAN
+              {profile.display_name
+                ? ` DARIPADA ${profile.display_name.toLocaleUpperCase()}`
+                : ""}
+            </span>
+            <p>{profile.announcement}</p>
+          </aside>
+        )}
+        <section
+          className="prayer-invitation"
+          aria-labelledby="prayer-invitation-title"
+        >
+          <span className="kicker">SATU DOA, SEBUAH HARAPAN</span>
+          <h2 id="prayer-invitation-title">Ada doa nak dikirim?</h2>
+          <p>Tinggalkan di sini, saya bacakan di Tanah Suci.</p>
+          <button className="primary" onClick={() => navigate("submission")}>
+            Tumpang Doa <ArrowRight size={18} />
+          </button>
+          <small className="reassurance">
+            <LockKeyhole size={13} /> Tanpa akaun · Kiriman untuk bacaan
+            peribadi jemaah
+          </small>
+        </section>
+      </div>
+    );
   if (submitted)
     return (
       <section className="journey-success" aria-live="polite">
@@ -74,89 +115,17 @@ export default function PublicJourney({
       </section>
     );
   return (
-    <div className="public-journey">
-      <section className="invitation-hero">
-        <div className="hero-copy">
-          <span className="kicker">
-            <span /> SEBUAH PERJALANAN, DOA BERSAMA
-          </span>
-          <h1>
-            Ada doa
-            <br />
-            nak <em>dikirim?</em>
-          </h1>
-          <p className="hero-caption">{profile.welcome_message}</p>
-          <p className="hero-description">
-            Insya-Allah saya akan menunaikan umrah tidak lama lagi. Kalau ada
-            doa atau hajat yang ingin dititipkan, bolehlah tinggalkan di sini.
-            Insya-Allah saya cuba bacakan satu persatu di Tanah Suci.
-          </p>
-          <div className="hero-buttons">
-            <button className="primary" onClick={start}>
-              Tumpang Doa <ArrowUpRight size={19} />
-            </button>
-            <a
-              href="#perjalanan"
-              onClick={(e) => {
-                e.preventDefault();
-                document
-                  .getElementById("perjalanan")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Tentang Perjalanan Ini <ArrowRight size={16} />
-            </a>
-          </div>
-          <small className="reassurance">
-            <LockKeyhole size={13} /> Tanpa akaun · Doa anda untuk bacaan
-            peribadi jemaah
-          </small>
-        </div>
-        <aside className="prayer-note" aria-label="Pesanan perjalanan">
-          <div className="note-arch">
-            <Heart size={27} strokeWidth={1.2} />
-            <span>
-              JAUH DI MATA,
-              <br />
-              DEKAT DALAM DOA.
-            </span>
-            <p>
-              “Walaupun kita tidak berada di tempat yang sama, doa tetap boleh
-              dibawa bersama.”
-            </p>
-            <i>Dengan ingatan yang baik.</i>
-            <div className="note-line" />
-          </div>
-        </aside>
-      </section>
-      <section id="perjalanan" className="personal-note">
-        <span className="note-avatar">
-          <Heart size={21} />
-        </span>
-        <div>
-          <span className="kicker">
-            PESANAN{" "}
-            {profile.display_name
-              ? `DARIPADA ${profile.display_name.toLocaleUpperCase()}`
-              : "BUAT YANG DIINGATI"}
-          </span>
-          <p>{profile.announcement}</p>
-          {profile.departure_date && (
-            <small>
-              Berangkat:{" "}
-              {new Date(
-                profile.departure_date + "T12:00:00",
-              ).toLocaleDateString("ms-MY", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-              {profile.return_date &&
-                ` · Pulang: ${new Date(profile.return_date + "T12:00:00").toLocaleDateString("ms-MY", { day: "numeric", month: "long", year: "numeric" })}`}
-            </small>
-          )}
-        </div>
-      </section>
+    <div className="public-journey submission-page">
+      <header className="submission-page-heading">
+        <button className="text-button" onClick={() => navigate("home")}>
+          ← Kembali ke pengumuman
+        </button>
+        <span className="kicker">SEUNTAI DOA, DIBAWA BERSAMA.</span>
+        <h1 ref={heading} tabIndex={-1}>
+          Borang Tumpang Doa
+        </h1>
+        <p>Tuliskan doa anda dengan tenang. Tidak perlu mendaftar akaun.</p>
+      </header>
       <section className="submission-layout" ref={form} id="tumpang-doa">
         <div className="submission-intro">
           <span className="kicker">RUANG UNTUK HARAPAN ANDA</span>

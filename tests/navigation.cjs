@@ -6,6 +6,12 @@ async function clickDestination(page, name) {
   }
   if (["Titip Doa", "Tumpang Doa"].includes(name)) {
     await page.locator(".site-brand").click();
+    await page
+      .getByRole("button", { name: "Tumpang Doa", exact: true })
+      .click();
+    await page
+      .getByRole("heading", { name: "Borang Tumpang Doa", exact: true })
+      .waitFor();
     return;
   }
   let direct = page.getByRole("button", { name, exact: true });

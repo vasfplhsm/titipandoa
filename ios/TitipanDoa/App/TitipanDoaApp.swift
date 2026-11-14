@@ -10,7 +10,7 @@ struct CompanionView: View {
     @State private var message = ""
     @State private var prayerID: String?
     @State private var reset = false
-    private let burgundy = Color(red: 73/255, green: 99/255, blue: 86/255)
+    private let burgundy = Color(red: 113/255, green: 63/255, blue: 75/255)
     var body: some View {
         NavigationStack {
             ScrollView {
