@@ -2,8 +2,8 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 
-private let burgundy = Color(red: 112/255, green: 46/255, blue: 70/255)
-private let butter = Color(red: 244/255, green: 215/255, blue: 123/255)
+private let burgundy = Color(red: 73/255, green: 99/255, blue: 86/255)
+private let butter = Color(red: 182/255, green: 199/255, blue: 178/255)
 
 enum ZikrChoice: String, CaseIterable, AppEnum {
     case subhanallah, alhamdulillah, allahuakbar, istighfar
@@ -81,7 +81,7 @@ struct DailyPrayerWidget: Widget {
     let kind = "TitipanDailyPrayer"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PrayerProvider()) { PrayerWidgetView(entry: $0) }
-            .configurationDisplayName("Doa Harian").description("Bacaan daripada katalog berbundel, tersedia tanpa internet.")
+            .configurationDisplayName("Tumpang Doa · Doa Harian").description("Bacaan daripada katalog berbundel, tersedia tanpa internet.")
             .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -125,7 +125,7 @@ struct TasbihWidgetView: View {
 struct DigitalTasbihWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "TitipanTasbih", intent: TasbihConfiguration.self, provider: TasbihProvider()) { TasbihWidgetView(entry: $0) }
-            .configurationDisplayName("Tasbih Digital").description("Kaunter setempat yang boleh disentuh, tanpa internet.")
+            .configurationDisplayName("Tumpang Doa · Tasbih").description("Kaunter setempat yang boleh disentuh, tanpa internet.")
             .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

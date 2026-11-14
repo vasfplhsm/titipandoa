@@ -1,72 +1,46 @@
-import {
-  House,
-  FileText,
-  CircleDot,
-  Info,
-  BookOpen,
-  Sun,
-  Moon,
-  LockKeyhole,
-} from "lucide-react";
-
+import { Sun, Moon } from "lucide-react";
 export function ArchMark({ className = "" }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 42 46"
+      viewBox="0 0 44 48"
       fill="none"
       aria-hidden="true"
     >
       <path
-        d="M5 43V24C5 17 17 14 21 4C25 14 37 17 37 24V43M2 43H40M12 43V29C12 25 18 23 21 18C24 23 30 25 30 29V43M18 43V34Q21 29 24 34V43M8 18V8M34 18V8"
+        d="M8 41V22C8 14 16 9 22 5c6 4 14 9 14 17v19H8Z"
         stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
+        strokeWidth="1.4"
       />
-      <path d="M24 4A4 4 0 0 1 20 0A4 4 0 1 0 24 4Z" fill="currentColor" />
+      <path
+        d="M15 25c0-5 7-5 7 0 0-5 7-5 7 0 0 4-7 8-7 8s-7-4-7-8Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path d="m29 35 7 6v-8" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   );
 }
-
 export default function SiteHeader({
-  activeTab,
   navigate,
   theme,
   toggleTheme,
-  isOwner,
-  openOwner,
   hidden,
 }) {
-  const links = [
-    ["home", "Utama", House],
-    ["submission", "Titip Doa", FileText],
-    ["collection", "Doa & Zikir", BookOpen],
-    ["tasbih", "Tasbih Digital", CircleDot],
-    ["about", "Tentang Kami", Info],
-  ];
   return (
     <header className="site-header" hidden={hidden}>
       <button
         className="site-brand"
         onClick={() => navigate("home")}
-        aria-label="Utama — Titipan Doa"
+        aria-label="Utama — Tumpang Doa"
       >
         <ArchMark />
-        <span>Titipan Doa</span>
+        <span>Tumpang Doa</span>
       </button>
-      <nav className="site-nav" aria-label="Navigasi utama">
-        {links.map(([id, label, Icon]) => (
-          <button
-            key={id}
-            aria-current={activeTab === id ? "page" : undefined}
-            onClick={() => navigate(id)}
-          >
-            <Icon size={16} strokeWidth={1.6} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
       <div className="site-actions">
+        <button className="text-button" onClick={() => navigate("about")}>
+          Tentang
+        </button>
         <button
           className="site-theme"
           aria-label={
@@ -74,16 +48,9 @@ export default function SiteHeader({
           }
           onClick={toggleTheme}
         >
-          {theme === "dark" ? <Moon size={21} /> : <Sun size={21} />}
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-        <button
-          className="site-account"
-          aria-label={isOwner ? "Ruang Jemaah" : "Akses Jemaah"}
-          onClick={openOwner}
-        >
-          <LockKeyhole size={15} />
-          <span>{isOwner ? "Ruang Jemaah" : "Akses Jemaah"}</span>
-        </button>
+
       </div>
     </header>
   );

@@ -1,3 +1,7 @@
+> Current owner authentication and redesign: [rollout guide](TUMPANG_DOA_REBRAND.md).
+> The app now verifies a Supabase Auth owner. Historical discussion of a local PIN
+> below describes the original repository, not the current authorization gate.
+
 # Koleksi Doa & Zikrullah: content and security workflow
 
 The curated library is versioned public content shipped with the application. The later PWA/platform storage and optional private-sync migration are documented separately in PWA_AND_SYNC.md. It

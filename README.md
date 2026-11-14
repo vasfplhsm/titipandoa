@@ -1,9 +1,12 @@
-# Titipan Doa
+# Tumpang Doa
 
-React 19 + Vite application for community prayer submissions, a reviewed Malay doa
-and zikr library, Digital Tasbih, and private Umrah planning. The mobile PWA adds
-an offline dashboard, safe local persistence and an explicit synchronization queue.
-Desktop views and the existing online owner workflows remain available.
+React 19 + Vite app for entrusting private prayers to an Umrah traveller. The public
+invitation is simple and account-free; the verified owner has a prayer inbox,
+resumable reading mode, private trip planning, the reviewed doa/zikir library and
+persistent Digital Tasbih. Installable PWA and native widget source are retained.
+
+**Before deployment:** read [the redesign and backend rollout guide](docs/TUMPANG_DOA_REBRAND.md).
+Production RLS could not be verified here. No SQL is executed automatically.
 
 ## Development
 
@@ -47,9 +50,12 @@ an application dependency; fake-indexeddb is a small test-only dev dependency.
 
 ## Features and data
 
-- Burgundy/ivory/butter-yellow design, local fonts, responsive header and five-tab
-  safe-area-aware mobile navigation. The mobile home has reusable daily-doa,
-  interactive Tasbih and Umrah-progress cards with locally saved visibility settings.
+- Sage & Sand light/dark design with centralized tokens and locally hosted fonts.
+  The public homepage centres on “Ada doa nak dikirim?” and an optional-name form.
+- Verified owner inbox, search/category/read filters, date sorting, explicit read/undo,
+  resumable large-type reading mode, configurable public announcement and dates,
+  WhatsApp/native sharing and safe copy links. Private planning and educational
+  features are separate from the visitor invitation.
 - **Koleksi Doa & Zikrullah:** 54 source-checked entries, 16 categories, local search,
   source filters, favourites, Arabic-size/Rumi/meaning controls, reading mode,
   native sharing with clipboard/manual fallback and standalone offline HTML export.
@@ -72,7 +78,7 @@ an application dependency; fake-indexeddb is a small test-only dev dependency.
 
 ## Security and rollout requirements
 
-The legacy local owner PIN is a UI gate, not server authorization or encryption.
+The legacy local PIN and owner URL flags no longer authorize owner access.
 Private server sync/downloads require a real Supabase Auth owner, trusted app_metadata
 role and the reviewed backend setup described in [PWA_AND_SYNC.md](docs/PWA_AND_SYNC.md).
 No production RLS policy or migration is executed automatically. The provided SQL
@@ -109,7 +115,8 @@ religious text or nonfunctional audio control is used.
 | --- | --- |
 | src/App.jsx | Existing app orchestration, online features, routing and data hydration |
 | src/components | Shared navigation/desktop hero, private community cards, About |
-| src/design.css | Central visual tokens and desktop/responsive design |
+| src/rebrand | Public journey, owner inbox/reader/settings/auth, semantic tokens and model tests |
+| src/design.css | Compatibility styles for retained components |
 | src/mobile | Bottom navigation, feature hubs and compact/expanded dashboard widgets |
 | src/library | Reviewed catalogue, reading/search/guides/sharing and daily selection |
 | src/tasbih | Counter UI, model, source handoff and persistence integration |

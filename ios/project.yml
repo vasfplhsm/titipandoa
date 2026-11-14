@@ -20,10 +20,12 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yourname.TitipanDoa
-        INFOPLIST_KEY_CFBundleDisplayName: Titipan Doa
+        INFOPLIST_KEY_CFBundleDisplayName: Tumpang Doa
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: Generated/App-Info.plist
       properties:
+        CFBundleDisplayName: Tumpang Doa
         UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleURLName: TitipanDoaNative

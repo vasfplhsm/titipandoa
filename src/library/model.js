@@ -185,7 +185,7 @@ export const escapeHTML = (text) =>
   );
 export function offlineDocument() {
   return (
-    '<!doctype html><html lang="ms"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Koleksi Doa & Zikrullah — Bacaan Luar Talian</title><style>body{font:16px/1.8 system-ui;background:#fff9ef;color:#321d24;max-width:760px;margin:auto;padding:24px}h1,h2{color:#72263d}article{padding:24px 0;border-bottom:1px solid #ebd9c2}.ar{font:32px/2 Amiri,serif;white-space:pre-line}a{color:#72263d}</style><h1>Koleksi Doa & Zikrullah</h1><p>Salinan bacaan luar talian · ' +
+    '<!doctype html><html lang="ms"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Koleksi Doa & Zikrullah — Bacaan Luar Talian</title><style>body{font:16px/1.8 system-ui;background:#FAF7F0;color:#28382F;max-width:760px;margin:auto;padding:24px}h1,h2{color:#496356}article{padding:24px 0;border-bottom:1px solid #DCE2D9}.ar{font:32px/2 Amiri,serif;white-space:pre-line}a{color:#496356}</style><h1>Koleksi Doa & Zikrullah</h1><p>Salinan bacaan luar talian · ' +
     ENTRIES.length +
     " entri. Huraian makna Bahasa Melayu ditulis untuk koleksi ini. Teks Arab al-Quran: QuranEnc melalui quran-json v3.1.2 (Risan Bagja Pradana), CC BY-SA 4.0. Lafaz hadis: koleksi yang dirujuk melalui hadith-api. Tiada audio atau bilangan baharu ditetapkan.</p>" +
     ENTRIES.map(
@@ -218,6 +218,6 @@ export function offlineDocument() {
           : "") +
         "</article>",
     ).join("") +
-    '<footer><p>Diambil daripada Titipan Doa. Lesen teks dan atribusi: <a href="https://github.com/risan/quran-json/tree/v3.1.2">quran-json</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Salinan bacaan ini tidak menyimpan kemajuan interaktif.</p></footer></html>'
+    '<footer><p>Diambil daripada Tumpang Doa. Lesen teks dan atribusi: <a href="https://github.com/risan/quran-json/tree/v3.1.2">quran-json</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Salinan bacaan ini tidak menyimpan kemajuan interaktif.</p></footer></html>'
   );
 }

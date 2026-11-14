@@ -139,7 +139,7 @@ async function until(check) {
   p.on("dialog", (d) => d.accept());
   await p.goto(url);
   await p
-    .getByRole("heading", { name: "Assalamualaikum", exact: true })
+    .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
     .waitFor();
   await p.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -159,10 +159,9 @@ async function until(check) {
   assert.equal(manifest.data.display, "standalone");
   assert.equal(manifest.scope, url);
   assert.equal(manifest.data.icons.length, 3);
-  await p.getByRole("button", { name: "Tab Lain-lain", exact: true }).click();
-  await p
-    .getByRole("button", { name: "Luar Talian & Pemasangan", exact: true })
-    .click();
+  await c.setOffline(true);
+  await p.getByRole("button", { name: "Luar Talian", exact: true }).click();
+  await c.setOffline(false);
   await p
     .getByRole("button", {
       name: "Muat Turun untuk Kegunaan Offline",
@@ -187,10 +186,11 @@ async function until(check) {
   p.on("dialog", (d) => d.accept());
   await p.goto(url);
   await p
-    .getByRole("heading", { name: "Assalamualaikum", exact: true })
+    .getByRole("heading", { name: "Ada doa nak dikirim?", exact: true })
     .waitFor();
-  assert.equal(await p.locator(".widget-counter-row strong").innerText(), "37");
-  await p.getByRole("button", { name: "Tambah tasbih pada widget" }).click();
+  await clickDestination(p, "Tasbih Digital");
+  assert.equal(await p.locator(".tasbih-count").innerText(), "37");
+  await p.locator(".tasbih-counter").click();
   await until(
     async () =>
       JSON.parse((await rows(p, "tasbih"))[0].value).sessions.subhanallah
@@ -204,21 +204,22 @@ async function until(check) {
     .getByRole("heading", { name: "Doa sebelum tidur", exact: true })
     .waitFor();
   await clickDestination(p, "Titip Doa");
+
+  await p.getByPlaceholder("Nama anda (pilihan)").fill("Fixture offline");
   await p
-    .getByRole("button", { name: "Titipkan doa anda di sini", exact: true })
-    .click();
-  await p
-    .getByPlaceholder("e.g. Ahmad & Family / Sahabat Kolej")
-    .fill("Fixture offline");
-  await p
-    .getByPlaceholder("Tuliskan titipan doa khusus anda di sini...")
+    .getByPlaceholder("Tuliskan doa atau hajat yang ingin saya bacakan...")
     .fill("Titipan ujian luar talian.");
-  await p.getByRole("button", { name: /Titip Doa Kepada/ }).click();
+  await p.getByRole("button", { name: "Hantar Doa", exact: true }).click();
   await until(
     async () =>
       (await rows(p, "outbox")).filter((o) => o.kind === "doa").length === 1,
   );
-  await p.getByRole("button", { name: /Titip Doa Kepada/ }).click();
+  assert.equal(
+    await p
+      .getByRole("button", { name: "Menunggu penyegerakan", exact: true })
+      .isDisabled(),
+    true,
+  );
   assert.equal(
     (await rows(p, "outbox")).filter((o) => o.kind === "doa").length,
     1,
@@ -254,9 +255,36 @@ async function until(check) {
   await seed(p, "preferences", [
     { id: "private-download", entities: ["checklist", "itinerary"] },
   ]);
-  await p.evaluate(() =>
-    localStorage.setItem("titipandoa_owner_authenticated", "true"),
+  // An offline download can only open for the same previously verified session.
+  const authKey =
+    "sb-" +
+    new URL(process.env.VITE_SUPABASE_URL).hostname.split(".")[0] +
+    "-auth-token";
+  await p.evaluate(
+    ({ authKey, ownerId }) =>
+      localStorage.setItem(
+        authKey,
+        JSON.stringify({
+          access_token: "fixture-token",
+          refresh_token: "fixture-refresh",
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          expires_in: 3600,
+          token_type: "bearer",
+          user: {
+            id: ownerId,
+            aud: "authenticated",
+            role: "authenticated",
+            email: "owner@example.invalid",
+            app_metadata: { titipandoa_role: "owner" },
+          },
+        }),
+      ),
+    { authKey, ownerId },
   );
+  await seed(p, "meta", [
+    { id: "verified-owner-session", value: ownerId },
+    { id: "private-owner", value: ownerId },
+  ]);
   await c.setOffline(true);
   await p.reload();
   await p.getByRole("button", { name: "Tab Umrah", exact: true }).click();
@@ -365,7 +393,7 @@ async function until(check) {
     cachedURLs.every((value) => new URL(value).origin === new URL(url).origin),
   );
   assert(!cachedURLs.some((value) => /rest\/v1|auth\/v1/.test(value)));
-  await p.getByRole("button", { name: "Tab Utama", exact: true }).click();
+  await clickDestination(p, "Utama");
   for (const width of [320, 390, 430, 844]) {
     await p.setViewportSize({ width, height: 844 });
     assert.equal(
@@ -380,7 +408,7 @@ async function until(check) {
   await p.screenshot({ path: "/tmp/pwa-dashboard-final.png", fullPage: true });
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: manifest/scope; cached offline reopen; IndexedDB count recovery; offline reading; stable queued submission; private authorization block; mocked conflict and lost-ack recovery; no private HTTP cache; mobile/landscape layouts.",
+    "PASS: manifest/scope; cached offline reopen; preserved IndexedDB count recovery; offline reading; stable queued submission; private authorization block; mocked conflict and lost-ack recovery; no private HTTP cache; mobile/landscape layouts.",
   );
   await browser.close();
 })().catch((e) => {

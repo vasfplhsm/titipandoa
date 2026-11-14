@@ -63,7 +63,7 @@ self.addEventListener("fetch", (event) => {
         return (
           (await cache.match(SHELL)) ||
           new Response(
-            '<!doctype html><meta name="viewport" content="width=device-width"><h1>Titipan Doa</h1><p>Buka aplikasi sekali dalam talian untuk menyiapkan simpanan luar talian.</p>',
+            '<!doctype html><meta name="viewport" content="width=device-width"><h1>Tumpang Doa</h1><p>Buka aplikasi sekali dalam talian untuk menyiapkan simpanan luar talian.</p>',
             {
               status: 503,
               headers: { "Content-Type": "text/html;charset=utf-8" },

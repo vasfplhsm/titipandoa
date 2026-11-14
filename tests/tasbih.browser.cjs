@@ -131,18 +131,16 @@ const assert = require("node:assert/strict");
     "PASS: custom zikr, dark theme, cross-tab conflict recovery, confirmed reset, 320px layout.",
   );
   await clickDestination(page, "Titip Doa");
+
   await page
-    .getByRole("button", { name: "Titipkan doa anda di sini", exact: true })
-    .click();
-  await page
-    .getByPlaceholder("e.g. Ahmad & Family / Sahabat Kolej")
+    .getByPlaceholder("Nama anda (pilihan)")
     .fill("Semakan borang");
   await clickDestination(page, "Tasbih Digital");
   assert.equal(await page.locator(".tasbih-count").innerText(), "0");
   await clickDestination(page, "Titip Doa");
   assert.equal(
     await page
-      .getByPlaceholder("e.g. Ahmad & Family / Sahabat Kolej")
+      .getByPlaceholder("Nama anda (pilihan)")
       .inputValue(),
     "Semakan borang",
   );

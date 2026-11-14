@@ -93,7 +93,7 @@ function TravelNotes({ rows, onMessage }) {
     </article>
   );
 }
-export default function OfflinePanel() {
+export default function OfflinePanel({isOwner=false}) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [operations, setOperations] = useState([]);
@@ -270,6 +270,7 @@ export default function OfflinePanel() {
           </p>
         )}
       </article>
+      {isOwner && <>
       <article className="offline-card">
         <h2>
           <ShieldCheck size={22} />
@@ -347,7 +348,7 @@ export default function OfflinePanel() {
       <article className="offline-card">
         <h2>Log masuk pemilik untuk segerak</h2>
         <p>
-          PIN setempat masih membuka paparan jemaah, tetapi tidak memberi kuasa
+          PIN setempat tidak membuka paparan jemaah dan tidak memberi kuasa
           menyegerakkan data peribadi. Gunakan akaun pemilik yang telah
           disediakan.
         </p>
@@ -397,13 +398,14 @@ export default function OfflinePanel() {
           Log keluar akaun pemilik
         </button>
       </article>
+      </>}
       <article className="offline-card">
         <h2>
           <RefreshCw size={22} />
           Perubahan belum disegerakkan
         </h2>
         <p>
-          {operations.length} perubahan tertunda. Hanya pengesahan server
+          {operations.filter(op=>isOwner || op.kind==='doa').length} perubahan tertunda. Hanya pengesahan server
           menandakan perubahan selesai.
         </p>
         <button
@@ -413,7 +415,7 @@ export default function OfflinePanel() {
         >
           Segerak sekarang
         </button>
-        {operations.map((op) => (
+        {operations.filter(op=>isOwner || op.kind==='doa').map((op) => (
           <div className="queue-item" key={op.id}>
             <strong>
               {op.entity} · {op.status}
@@ -456,7 +458,7 @@ export default function OfflinePanel() {
           </div>
         ))}
       </article>
-      {cachedItinerary.length > 0 && (
+      {isOwner && cachedItinerary.length > 0 && (
         <TravelNotes rows={cachedItinerary} onMessage={setMessage} />
       )}
       <article className="offline-card install-guide">
@@ -475,7 +477,7 @@ export default function OfflinePanel() {
             <li>Tekan Kongsi (Share).</li>
             <li>Pilih Tambah ke Skrin Utama (Add to Home Screen).</li>
             <li>Aktifkan Open as Web App jika pilihan itu tersedia.</li>
-            <li>Tekan Tambah, kemudian buka Titipan Doa dari Skrin Utama.</li>
+            <li>Tekan Tambah, kemudian buka Tumpang Doa dari Skrin Utama.</li>
             <li>
               Tekan Muat Turun untuk Kegunaan Offline dan tunggu pengesahan
               sebelum mengaktifkan mod kapal terbang.

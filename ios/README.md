@@ -1,4 +1,4 @@
-# Titipan Doa native widget companion (iOS 17+)
+# Tumpang Doa native widget companion (iOS 17+)
 
 This is separate from the React PWA. It provides bundled daily-prayer widgets and
 an offline interactive Tasbih using SwiftUI, WidgetKit and App Intents. It does not
@@ -61,7 +61,7 @@ No runtime generation, unlicensed recording or network is needed for basic widge
 5. Connect the iPhone, trust the Mac and enable Developer Mode when iOS requests it.
 6. Select the physical iPhone as run destination and run the host app. Resolve any
    trust/developer certificate prompt in iPhone Settings before launching again.
-7. Long-press the iPhone Home Screen → Edit/Add Widget → search Titipan Doa. Add
+7. Long-press the iPhone Home Screen → Edit/Add Widget → search Tumpang Doa. Add
    Doa Harian and/or Tasbih Digital in small or medium size.
 8. Long-press the Tasbih widget → Edit Widget to select a zikir. The medium widget
    also offers a reset App Intent with confirmation.
@@ -110,3 +110,5 @@ new devotional prescriptions are claimed by counting.
 - Test daily rollover and source links. WidgetKit may defer a scheduled refresh.
 - Verify deep links open the correct host prayer and the website's `/titipandoa/`
   hash route. Do not rely on an automatic Safari/PWA storage bridge.
+
+The rebrand retains all bundle identifiers and widget kinds. The host includes an original Sage & Sand AppIcon asset and displays “Tumpang Doa”. Rebuild/reinstall with Xcode to update an existing installation; native compilation and device rendering remain unverified here.

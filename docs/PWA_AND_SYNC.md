@@ -1,10 +1,15 @@
-# Titipan Doa 2.0 — PWA, offline storage and synchronization
+> Current redesign/auth update: see [Tumpang Doa rollout](TUMPANG_DOA_REBRAND.md).
+> Local PIN/URL flags no longer open owner mode. Previously verified device records and
+> explicit matching-owner downloads permit offline reading; live actions require
+> server authorization. Read/undo prayer status remains online-only.
+
+# Tumpang Doa 2.0 — PWA, offline storage and synchronization
 
 ## Installation on iPhone
 
 1. Open the HTTPS GitHub Pages/Netlify site in Safari, not an embedded social-app browser.
 2. Open Share → Add to Home Screen. Enable **Open as Web App** if offered, then Add.
-3. Launch Titipan Doa from the Home Screen. It should run in standalone mode.
+3. Launch Tumpang Doa from the Home Screen. It should run in standalone mode.
 4. Open Lain-lain → Luar Talian & Pemasangan.
 5. Choose **Muat Turun untuk Kegunaan Offline** and wait for the explicit successful
    download message. The public shell also precaches on the first successful service
@@ -71,7 +76,7 @@ save. Storage eviction, private browsing policies, app removal and device failur
 can still remove local data: keep important records on Supabase and export readings
 when useful. Do not claim absolute crash/eviction immunity.
 
-The dashboard Tasbih widget and full Tasbih share this **web app** state, including
+The retained web Tasbih components share this **web app** state, including
 separate counters and guided progress. Native WidgetKit storage is separate; see
 [the iOS companion guide](../ios/README.md).
 
@@ -85,8 +90,7 @@ the general offline database and HTTP cache.
 
 Selected itinerary downloads also include flight settings only, never the budget settings. Private snapshots/notes/outbox data are local plaintext, not encrypted. The UI tells
 the user to protect their device/browser profile. Download only what is necessary.
-An opted-in prior download can be read offline on that device. The local owner PIN
-is a presentation gate, not encryption or a backend authorization boundary.
+An opted-in prior download can be read offline on that device with its matching previously verified owner record. The former local owner PIN is unused; the device marker is not encryption or a backend authorization boundary.
 
 The clear-private-copy action removes downloaded private records and local notes;
 it refuses while private patches are unresolved. Pending changes must first be

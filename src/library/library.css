@@ -43,7 +43,7 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 7px 18px;
-  box-shadow: 0 5px 25px #72263d05;
+  box-shadow: 0 5px 25px color-mix(in srgb, var(--primary) 1.96%, transparent);
 }
 .library-search > svg {
   color: var(--burgundy);
@@ -60,7 +60,7 @@
 }
 .library-search:focus-within {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px #d9ad6226;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14.90%, transparent);
 }
 .library-search button {
   min-width: 35px;
@@ -181,13 +181,13 @@
 .library-categories button[aria-pressed="true"] {
   background: var(--burgundy);
   border-color: var(--burgundy);
-  color: #fff9ef;
+  color: var(--background);
 }
 .library-categories button[aria-pressed="true"] > svg {
   color: var(--butter);
 }
 .library-categories button[aria-pressed="true"] > small {
-  background: #4b1728;
+  background: var(--primary-dark);
   color: var(--butter);
 }
 .library-result-heading {
@@ -235,7 +235,7 @@
   transition: box-shadow 0.15s;
 }
 .library-result-card:hover {
-  box-shadow: 0 7px 22px #72263d0b;
+  box-shadow: 0 7px 22px color-mix(in srgb, var(--primary) 4.31%, transparent);
 }
 .result-card-top {
   display: flex;
@@ -507,7 +507,7 @@
 .reading-block > span {
   font-size: 9px;
   letter-spacing: 1.6px;
-  color: #916c40;
+  color: var(--muted);
 }
 .reading-block > p {
   font-size: 15px;

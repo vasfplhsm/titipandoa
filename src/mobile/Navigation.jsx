@@ -55,7 +55,7 @@ export function BottomNavigation({ active, navigate, hidden }) {
     </nav>
   );
 }
-export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide }) {
+export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide, departureDate }) {
   const data =
     kind === "doahub"
       ? {
@@ -161,7 +161,7 @@ export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide }) {
                   "Bacaan titipan dalam mod fokus.",
                   BookOpen,
                 ],
-                ["about", "Tentang Kami", "Kenali Titipan Doa.", Info],
+                ["about", "Tentang Kami", "Kenali Tumpang Doa.", Info],
               ],
             };
   return (
@@ -170,6 +170,7 @@ export function FeatureHub({ kind, navigate, isOwner, openOwner, openGuide }) {
         <span className="eyebrow">{data.eyebrow}</span>
         <h1>{data.title}</h1>
       </header>
+      {kind==='umrahhub' && isOwner && departureDate && <p className="departure-countdown">{Math.max(0,Math.ceil((new Date(departureDate+'T00:00:00+08:00')-new Date())/86400000))} hari menuju perjalanan · {departureDate}</p>}
       <div className="hub-grid">
         {data.items.map(([id, title, description, Icon]) => (
           <button

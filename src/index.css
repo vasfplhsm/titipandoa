@@ -10,3 +10,5 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.startup-screen{min-height:100dvh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:Georgia,serif;font-size:30px}.startup-screen span{font:13px Arial,sans-serif}

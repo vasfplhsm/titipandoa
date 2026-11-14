@@ -10,7 +10,7 @@
     "deploy": "gh-pages -d dist",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node scripts/verify-library.mjs && node src/library/model.test.js && node src/tasbih/model.test.js && node src/offline/db.test.js && node scripts/test-native-content.mjs",
+    "test": "node scripts/verify-library.mjs && node src/library/model.test.js && node src/tasbih/model.test.js && node src/offline/db.test.js && node scripts/test-native-content.mjs && node src/rebrand/model.test.js",
     "native:content": "node scripts/export-native-content.mjs"
   },
   "dependencies": {

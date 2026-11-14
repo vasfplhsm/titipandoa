@@ -3,7 +3,7 @@ import { Wifi, WifiOff, RefreshCw, Download } from "lucide-react";
 import { get } from "./db.js";
 import { pendingOperations, syncIsActive } from "./sync.js";
 import { pwaState, applyUpdate } from "./pwa.js";
-export default function OfflineChrome({ navigate, hidden, saveBeforeUpdate }) {
+export default function OfflineChrome({ navigate, hidden, saveBeforeUpdate, publicMode=false }) {
   const [online, setOnline] = useState(navigator.onLine);
   const [count, setCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -55,7 +55,7 @@ export default function OfflineChrome({ navigate, hidden, saveBeforeUpdate }) {
           ? "Semua Data Dikemas Kini"
           : "Dalam Talian";
   return (
-    <div hidden={hidden} className="offline-chrome">
+    <div hidden={hidden || (publicMode && online && !count && !pwa.update && !pwa.error)} className="offline-chrome">
       <button
         className={`connection-indicator ${online ? "" : "is-offline"}`}
         onClick={() => navigate("offline")}
@@ -85,7 +85,7 @@ export default function OfflineChrome({ navigate, hidden, saveBeforeUpdate }) {
       )}
       {pwa.update && (
         <div className="pwa-update">
-          <p>Versi baharu Titipan Doa tersedia.</p>
+          <p>Versi baharu Tumpang Doa tersedia.</p>
           <button
             disabled={count > 0 || syncing}
             onClick={async () => {
