@@ -308,8 +308,8 @@ export default function App() {
   const [pilgrimName] = useState('Syahidah Zulkafli');
   
   const [ownerPin, setOwnerPin] = useState(() => {
-    if (typeof window === 'undefined') return '1234';
-    try { return localStorage.getItem('titipandoa_owner_pin') || '1234'; } catch { return '1234'; }
+    if (typeof window === 'undefined') return '2525';
+    try { return localStorage.getItem('titipandoa_owner_pin') || '2525'; } catch { return '2525'; }
   });
 
   const [showPinModal, setShowPinModal] = useState(() => !isOwner && (
